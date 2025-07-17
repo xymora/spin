@@ -13,7 +13,10 @@ DATA_URL = "https://covenantaegis.com/segmentation_data_recruitment.csv"
 @st.cache_data
 def load_data():
     try:
-        return pd.read_csv(DATA_URL)
+        df = pd.read_csv(DATA_URL)
+        df['avg_amount_withdrawals'] = pd.to_numeric(df['avg_amount_withdrawals'], errors='coerce').fillna(0)
+        df['avg_purchases_per_week'] = pd.to_numeric(df['avg_purchases_per_week'], errors='coerce').fillna(0)
+        return df
     except Exception as e:
         st.error(f"No se pudo cargar la base de datos: {e}")
         return pd.DataFrame()
@@ -33,14 +36,10 @@ def clasificar_riesgo(retiros, compras):
     else:
         return '🔴 Riesgo Alto'
 
-if not df.empty and {'avg_amount_withdrawals', 'avg_purchases_per_week'}.issubset(df.columns):
-    df['Clasificación Automática'] = df.apply(
-        lambda row: clasificar_riesgo(row['avg_amount_withdrawals'], row['avg_purchases_per_week']),
-        axis=1
-    )
-else:
-    st.error("No se encontraron las columnas necesarias.")
-    st.stop()
+df['Clasificación Automática'] = df.apply(
+    lambda row: clasificar_riesgo(row['avg_amount_withdrawals'], row['avg_purchases_per_week']),
+    axis=1
+)
 
 # =====================
 # Filtros laterales
@@ -52,18 +51,18 @@ with st.sidebar:
 
     if aplicar_filtros:
         edad_min, edad_max = int(df['age'].min()), int(df['age'].max())
-        retiro_min, retiro_max = float(df['avg_amount_withdrawals'].min()), float(df['avg_amount_withdrawals'].max())
-        compra_min, compra_max = float(df['avg_purchases_per_week'].min()), float(df['avg_purchases_per_week'].max())
+        retiro_min, retiro_max = df['avg_amount_withdrawals'].min(), df['avg_amount_withdrawals'].max()
+        compra_min, compra_max = df['avg_purchases_per_week'].min(), df['avg_purchases_per_week'].max()
 
         edad = st.slider("Edad", edad_min, edad_max, (edad_min, edad_max))
-        retiros = st.slider("Promedio de Retiros", retiro_min, retiro_max, (retiro_min, retiro_max))
-        compras = st.slider("Compras por semana", compra_min, compra_max, (compra_min, compra_max))
+        retiros = st.slider("Promedio de Retiros", float(retiro_min), float(retiro_max), (float(retiro_min), float(retiro_max)))
+        compras = st.slider("Compras por semana", float(compra_min), float(compra_max), (float(compra_min), float(compra_max)))
 
         tipos_credito = df['Clasificación Automática'].unique().tolist()
         tipos_seleccionados = st.multiselect("Tipo de crédito", sorted(tipos_credito), default=tipos_credito)
 
 # =====================
-# Aplicar filtros si se seleccionan
+# Aplicar filtros
 # =====================
 if aplicar_filtros:
     df_filtrado = df[
