@@ -7,16 +7,16 @@ from scipy.stats import gaussian_kde
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import logging
-\# -----------------------------------
-\# Configuración de logging\ nlogging.basicConfig(
+# -----------------------------------
+# Configuración de logging
+logging.basicConfig(
     format='%(asctime)s %(levelname)s:%(message)s',
     level=logging.INFO,
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger(__name__)
 
-# Configuración de la página
-st.set_page_config(
+# Configuración de la página(
     page_title="Dashboard de Clientes Bancarios",
     layout="wide",
     initial_sidebar_state="expanded"
