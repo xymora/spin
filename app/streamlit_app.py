@@ -152,6 +152,11 @@ if st.session_state['search_active'] and st.session_state['user_search'] and len
     user_df = df_filtered.iloc[0]
     st.subheader(f"📈 Gráficas de crédito para `{st.session_state['user_search']}`")
 
+    # Calcular percentiles del usuario
+    pct_retiros = (df['avg_amount_withdrawals'] <= user_df['avg_amount_withdrawals']).mean() * 100
+    pct_compras = (df['avg_purchases_per_week'] <= user_df['avg_purchases_per_week']).mean() * 100
+    pct_edad = (df['age'] <= user_df['age']).mean() * 100
+
     # 1) Histograma de retiros
     fig1 = px.histogram(
         df, x='avg_amount_withdrawals', nbins=20,
@@ -163,8 +168,8 @@ if st.session_state['search_active'] and st.session_state['user_search'] and len
     )
     st.plotly_chart(fig1, use_container_width=True)
     st.markdown(
-        "**Explicación:** Muestra cómo su monto promedio de retiros se sitúa frente a todos los clientes. "
-        "Un valor muy alto puede indicar riesgo de liquidez elevado."
+        f"**Explicación:** El cliente retiró un promedio de **${user_df['avg_amount_withdrawals']:,.2f}**, "
+        f"ubicándose en el percentil {pct_retiros:.1f}° de todos los clientes."
     )
 
     # 2) Histograma de compras/semana
@@ -178,8 +183,8 @@ if st.session_state['search_active'] and st.session_state['user_search'] and len
     )
     st.plotly_chart(fig2, use_container_width=True)
     st.markdown(
-        "**Explicación:** Sitúa la frecuencia de compras del cliente frente al conjunto. "
-        "Valores bajos pueden reflejar poca actividad de gasto, altos indican alta vinculación."
+        f"**Explicación:** El cliente realiza en promedio **{user_df['avg_purchases_per_week']:.2f}** compras/semana, "
+        f"situándose en el percentil {pct_compras:.1f}° frente a la base."
     )
 
     # 3) Radar chart
@@ -193,7 +198,9 @@ if st.session_state['search_active'] and st.session_state['user_search'] and len
     )
     st.plotly_chart(fig3, use_container_width=True)
     st.markdown(
-        "**Explicación:** Combina varias métricas para ver si el perfil es equilibrado o presenta picos marcados."
+        f"**Explicación:** Muestra simultáneamente retiros (${user_df['avg_amount_withdrawals']:,.2f}), "
+        f"compras/semana ({user_df['avg_purchases_per_week']:.2f}) y edad ({int(user_df['age'])} años), "
+        "para evaluar desequilibrios."
     )
 
     # 4) Comparativa vs mediana
@@ -209,7 +216,10 @@ if st.session_state['search_active'] and st.session_state['user_search'] and len
     )
     st.plotly_chart(fig4, use_container_width=True)
     st.markdown(
-        "**Explicación:** Presenta la desviación cuantitativa entre el cliente y la mediana global para cada métrica."
+        f"**Explicación:** Para retiros, compras/semana y edad, el cliente versus mediana: "
+        f"{user_df['avg_amount_withdrawals']:,.0f} vs {medians['avg_amount_withdrawals']:,.0f}, "
+        f"{user_df['avg_purchases_per_week']:.2f} vs {medians['avg_purchases_per_week']:.2f}, "
+        f"{user_df['age']} vs {int(medians['age'])}."
     )
 
     # 5) Pie de Credit Scores global
@@ -220,8 +230,9 @@ if st.session_state['search_active'] and st.session_state['user_search'] and len
         title='Distribución Global de Credit Scores'
     )
     st.plotly_chart(fig5, use_container_width=True)
+    pct_score = (score_counts.set_index('credit_score').loc[user_df['credit_score'],'count'] / len(df)) * 100
     st.markdown(
-        "**Explicación:** Muestra la composición de toda la cartera por tipo de crédito, contextualizando al cliente."
+        f"**Explicación:** El cliente pertenece al {pct_score:.1f}% de usuarios con score `{user_df['credit_score']}` en la base."
     )
 
 # ====================================
