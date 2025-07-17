@@ -62,16 +62,23 @@ st.sidebar.header("🔍 Filtros opcionales")
 credit_order = ['🔵 Premium Credit', '🟢 Basic Credit', '🟡 Moderate Risk', '🔴 High Risk']
 available_scores = [c for c in credit_order if c in df['credit_score'].unique()]
 selected_scores = st.sidebar.multiselect("Credit Score", available_scores, default=available_scores)
-# Input y botones con session_state
-user_input = st.sidebar.text_input("👤 Ingresar usuario exacto", key="user_input")
-search = st.sidebar.button("Buscar")
-clear = st.sidebar.button("Borrar")
 
-# Lógica de borrado de detalles
-if clear:
-    st.session_state["user_input"] = ""
-    # No ejecutar búsqueda tras borrar
-    search = False
+# Input de usuario y botones
+# Text input para el nombre de usuario con session_state
+if 'user_input' not in st.session_state:
+    st.session_state.user_input = ''
+st.sidebar.text_input(
+    "👤 Ingresar usuario exacto",
+    key="user_input"
+)
+
+# Botón Borrar: solo limpia el campo de texto
+def clear_text():
+    st.session_state.user_input = ''
+st.sidebar.button("Borrar", on_click=clear_text)
+
+# Botón Buscar: dispara la visualización de detalles
+search = st.sidebar.button("Buscar")
 
 # Filtrar DataFrame
 filtered_df = df[df['credit_score'].isin(selected_scores)].copy()
