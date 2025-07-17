@@ -13,7 +13,7 @@ DATA_URL = "https://covenantaegis.com/segmentation_data_recruitment.csv"
 @st.cache_data
 def load_data():
     try:
-        df = pd.read_csv(DATA_URL)
+        df = pd.read_csv(DATA_URL, encoding='latin1')  # ⚠️ CAMBIO AQUÍ
         df['Promedio de Retiros'] = pd.to_numeric(df['Promedio de Retiros'], errors='coerce').fillna(0)
         df['Compras por semana'] = pd.to_numeric(df['Compras por semana'], errors='coerce').fillna(0)
         return df
@@ -22,6 +22,10 @@ def load_data():
         return pd.DataFrame()
 
 df = load_data()
+
+# Verifica si está vacío antes de continuar
+if df.empty:
+    st.stop()
 
 # =====================
 # Clasificación automática
