@@ -150,7 +150,10 @@ st.download_button("💾 Descargar CSV", data=csv, file_name='clientes_filtrados
 # ====================================
 if st.session_state['search_active'] and st.session_state['user_search'] and len(df_filtered) == 1:
     user_df = df_filtered.iloc[0]
-    st.subheader(f"📈 Gráficas de crédito para `{st.session_state['user_search']}`")
+    st.subheader(
+    f"📈 Gráficas de crédito para `{st.session_state['user_search']}` "
+    f"(Edad: {int(user_df['age'])} años | Index: {user_df['index']} | Score: {user_df['credit_score']})"
+)
 
     # Calcular percentiles del usuario
     pct_retiros = (df['avg_amount_withdrawals'] <= user_df['avg_amount_withdrawals']).mean() * 100
