@@ -63,17 +63,24 @@ available_scores = [c for c in credit_order if c in df['credit_score'].unique()]
 selected_scores = st.sidebar.multiselect("Credit Score", available_scores, default=available_scores)
 
 # Input de usuario y botones alineados
-col1, col2 = st.sidebar.columns([2,1])
+# Inicializar estados
 if 'user_input' not in st.session_state:
     st.session_state.user_input = ''
-with col1:
-    st.text_input("👤 Ingresar usuario exacto", key="user_input")
-with col2:
-    if col2.button("Buscar"):
-        st.session_state.search = True
-    if col2.button("Borrar"):
-        st.session_state.user_input = ''
-        st.session_state.search = False
+if 'search' not in st.session_state:
+    st.session_state.search = False
+
+# Caja de texto para usuario
+st.sidebar.text_input(
+    "👤 Ingresar usuario exacto", key="user_input"
+)
+
+# Botones en la misma fila: Buscar (izquierda) y Borrar (derecha)
+btn_buscar, btn_borrar = st.sidebar.columns(2)
+if btn_buscar.button("Buscar"):
+    st.session_state.search = True
+if btn_borrar.button("Borrar"):
+    st.session_state.user_input = ''
+    st.session_state.search = False
 
 # Control de búsqueda
 deferenced = st.session_state.get('search', False)
