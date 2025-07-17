@@ -120,8 +120,6 @@ if seleccionados:
             st.plotly_chart(fig2, use_container_width=True)
 
         with col3:
-            rc_counts = sub_df['registration_channel'].value_counts().reset_index()
-            rc_counts.columns = ['channel', 'count']
-            fig3 = px.bar(rc_counts, x='channel', y='count', title="Canal de Registro")
+            fig3 = px.histogram(sub_df, x='age', nbins=20, title="Distribución de Edad")
             fig3.update_layout(height=250)
             st.plotly_chart(fig3, use_container_width=True)
