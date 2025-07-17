@@ -36,9 +36,9 @@ if df.empty:
     st.stop()
 
 # Clasificar automáticamente
-if 'avg_amount_withdrawals' in df.columns and 'avg_purchase_per_week' in df.columns:
+if 'avg_amount_withdrawals' in df.columns and 'avg_purchases_per_week' in df.columns:
     df['Clasificación Automática'] = df.apply(
-        lambda row: clasificar_riesgo(row['avg_amount_withdrawals'], row['avg_purchase_per_week']),
+        lambda row: clasificar_riesgo(row['avg_amount_withdrawals'], row['avg_purchases_per_week']),
         axis=1
     )
 
@@ -47,18 +47,18 @@ with st.sidebar:
     st.header("🔍 Filtros")
     edad = st.slider("Edad", int(df['age'].min()), int(df['age'].max()), (int(df['age'].min()), int(df['age'].max())))
     retiros = st.slider("Monto promedio de retiros", float(df['avg_amount_withdrawals'].min()), float(df['avg_amount_withdrawals'].max()), (float(df['avg_amount_withdrawals'].min()), float(df['avg_amount_withdrawals'].max())))
-    compras = st.slider("Compras promedio por semana", float(df['avg_purchase_per_week'].min()), float(df['avg_purchase_per_week'].max()), (float(df['avg_purchase_per_week'].min()), float(df['avg_purchase_per_week'].max())))
+    compras = st.slider("Compras promedio por semana", float(df['avg_purchases_per_week'].min()), float(df['avg_purchases_per_week'].max()), (float(df['avg_purchases_per_week'].min()), float(df['avg_purchases_per_week'].max())))
 
 # Aplicar filtros
 df_filtrado = df[
     (df['age'].between(*edad)) &
     (df['avg_amount_withdrawals'].between(*retiros)) &
-    (df['avg_purchase_per_week'].between(*compras))
+    (df['avg_purchases_per_week'].between(*compras))
 ]
 
 # Mostrar resultados filtrados
 st.subheader("📋 Clientes Filtrados")
-columnas_mostrar = ['user', 'age', 'avg_amount_withdrawals', 'avg_purchase_per_week', 'Clasificación Automática']
+columnas_mostrar = ['user', 'age', 'avg_amount_withdrawals', 'avg_purchases_per_week', 'Clasificación Automática']
 columnas_mostrar = [col for col in columnas_mostrar if col in df_filtrado.columns]
 st.dataframe(df_filtrado[columnas_mostrar])
 st.markdown(f"🔎 Total encontrados: **{len(df_filtrado)}**")
