@@ -11,6 +11,10 @@ from sklearn.preprocessing import StandardScaler
 st.set_page_config(page_title="Dashboard de Clientes Bancarios", layout="wide")
 st.title("🏦 Dashboard de Clientes Bancarios")
 
+# ======================================
+# El Informe General se mostrará tras cargar datos
+# ======================================
+
 DATA_URL = "https://covenantaegis.com/segmentation_data_recruitment.csv"
 
 @st.cache_data(show_spinner=False)
@@ -28,6 +32,18 @@ def load_data(url: str) -> pd.DataFrame:
 # Cargar datos
 try:
     df = load_data(DATA_URL)
+    # =====================================
+    # Informe General
+    # =====================================
+    total_clients = len(df)
+    avg_withdrawals = df['avg_amount_withdrawals'].mean()
+    avg_purchases = df['avg_purchases_per_week'].mean()
+    avg_age = df['age'].mean()
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total Clientes", f"{total_clients:,}")
+    col2.metric("Retiro Promedio", f"${avg_withdrawals:,.2f}")
+    col3.metric("Compras/Semana Prom.", f"{avg_purchases:.2f}")
+    col4.metric("Edad Promedio", f"{avg_age:.1f}")
 except Exception as e:
     st.error(f"Error al cargar datos: {e}")
     st.stop()
