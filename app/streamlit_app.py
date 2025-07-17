@@ -23,6 +23,9 @@ def load_data():
 
 df = load_data()
 
+if df.empty:
+    st.stop()
+
 # =====================
 # Clasificación automática
 # =====================
@@ -75,42 +78,8 @@ else:
     df_filtrado = df.copy()
 
 # =====================
-# Diccionario de nombres en español
+# Mostrar resultados
 # =====================
-nombres_columnas_es = {
-    "user": "ID",
-    "age": "Edad",
-    "gender": "Género",
-    "marital_status": "Estado civil",
-    "education_level": "Nivel educativo",
-    "employment_status": "Ocupación",
-    "account_balance": "Capital",
-    "avg_amount_withdrawals": "Promedio de retiros",
-    "avg_purchases_per_week": "Compras por semana",
-    "is_homeowner": "Es propietario",
-    "has_credit_card": "Tiene tarjeta de crédito",
-    "num_products_owned": "Productos contratados",
-    "days_active_per_month": "Días activo por mes",
-    "device_type": "Tipo de dispositivo",
-    "region": "Región",
-    "Clasificación Automática": "Clasificación automática"
-}
-
-# =====================
-# Reordenar columnas para mostrar primero la "Capital" como índice visual
-# =====================
-df_mostrar = df_filtrado.copy()
-df_mostrar.index.name = "Capital"
-df_mostrar = df_mostrar.rename(columns=nombres_columnas_es)
-
-# Reordenar si quieres que "Nombre" esté al inicio
-if "ID" in df_mostrar.columns:
-    cols = df_mostrar.columns.tolist()
-    if "ID" in cols:
-        cols.remove("ID")
-        df_mostrar = df_mostrar[["ID"] + cols]
-
 st.subheader("📋 Clientes Visualizados")
-
-st.dataframe(df_mostrar, use_container_width=True)
-st.markdown(f"🔎 Total mostrados: **{len(df_mostrar):,}** / 100,000")
+st.dataframe(df_filtrado, use_container_width=True)
+st.markdown(f"🔎 Total mostrados: **{len(df_filtrado):,}** / 100,000")
