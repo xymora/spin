@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
-import requests
 
-# URL del CSV
 DATA_URL = "https://covenantaegis.com/segmentation_data_recruitment.csv"
 
 @st.cache_data
@@ -29,10 +27,14 @@ st.title("🏦 Dashboard de Clientes Bancarios")
 if df.empty:
     st.warning("No hay datos disponibles.")
 else:
-    # Clasificación automática
-    if 'ingreso_mensual' in df.columns and 'pagos_mensuales' in df.columns:
+    st.write("🧾 Columnas del DataFrame:", df.columns.tolist())
+
+    ingreso_col = 'ingreso_mensual' if 'ingreso_mensual' in df.columns else None
+    pagos_col = 'pagos_mensuales' if 'pagos_mensuales' in df.columns else None
+
+    if ingreso_col and pagos_col:
         df['Clasificación Automática'] = df.apply(
-            lambda row: clasificar_riesgo(row['ingreso_mensual'], row['pagos_mensuales']), axis=1
+            lambda row: clasificar_riesgo(row[ingreso_col], row[pagos_col]), axis=1
         )
 
     with st.sidebar:
@@ -40,21 +42,23 @@ else:
         filtros = {}
         for col in df.columns:
             if df[col].dtype == 'object' and df[col].nunique() < 50:
-                seleccion = st.multiselect(col, sorted(df[col].dropna().unique()))
+                seleccion = st.multiselect(col, sorted(df[col].dropna().unique()), key=col)
                 if seleccion:
                     filtros[col] = seleccion
 
-        # Filtro por Clasificación Automática
-        clasificaciones = st.multiselect(
-            "Clasificación Automática",
-            ['🔵 Crédito Premium', '🟢 Crédito Básico', '🟡 Riesgo Moderado', '🔴 Riesgo Alto']
-        )
-        if clasificaciones:
-            filtros['Clasificación Automática'] = clasificaciones
+        if 'Clasificación Automática' in df.columns:
+            clasificaciones = st.multiselect(
+                "Clasificación Automática",
+                ['🔵 Crédito Premium', '🟢 Crédito Básico', '🟡 Riesgo Moderado', '🔴 Riesgo Alto'],
+                key='clasificacion'
+            )
+            if clasificaciones:
+                filtros['Clasificación Automática'] = clasificaciones
 
     df_filtrado = df.copy()
     for col, valores in filtros.items():
-        df_filtrado = df_filtrado[df_filtrado[col].isin(valores)]
+        if col in df_filtrado.columns:
+            df_filtrado = df_filtrado[df_filtrado[col].isin(valores)]
 
     st.subheader("📋 Clientes Filtrados")
     st.dataframe(df_filtrado)
