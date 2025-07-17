@@ -13,19 +13,15 @@ DATA_URL = "https://covenantaegis.com/segmentation_data_recruitment.csv"
 @st.cache_data
 def load_data():
     try:
-        df = pd.read_csv(DATA_URL, encoding='latin1')  # ⚠️ CAMBIO AQUÍ
-        df['Promedio de Retiros'] = pd.to_numeric(df['Promedio de Retiros'], errors='coerce').fillna(0)
-        df['Compras por semana'] = pd.to_numeric(df['Compras por semana'], errors='coerce').fillna(0)
+        df = pd.read_csv(DATA_URL)
+        df['avg_amount_withdrawals'] = pd.to_numeric(df['avg_amount_withdrawals'], errors='coerce').fillna(0)
+        df['avg_purchases_per_week'] = pd.to_numeric(df['avg_purchases_per_week'], errors='coerce').fillna(0)
         return df
     except Exception as e:
         st.error(f"No se pudo cargar la base de datos: {e}")
         return pd.DataFrame()
 
 df = load_data()
-
-# Verifica si está vacío antes de continuar
-if df.empty:
-    st.stop()
 
 # =====================
 # Clasificación automática
@@ -41,7 +37,7 @@ def clasificar_riesgo(retiros, compras):
         return '🔴 Riesgo Alto'
 
 df['Clasificación Automática'] = df.apply(
-    lambda row: clasificar_riesgo(row['Promedio de Retiros'], row['Compras por semana']),
+    lambda row: clasificar_riesgo(row['avg_amount_withdrawals'], row['avg_purchases_per_week']),
     axis=1
 )
 
@@ -54,9 +50,9 @@ with st.sidebar:
     aplicar_filtros = st.checkbox("Aplicar filtros", value=False)
 
     if aplicar_filtros:
-        edad_min, edad_max = int(df['Edad'].min()), int(df['Edad'].max())
-        retiro_min, retiro_max = df['Promedio de Retiros'].min(), df['Promedio de Retiros'].max()
-        compra_min, compra_max = df['Compras por semana'].min(), df['Compras por semana'].max()
+        edad_min, edad_max = int(df['age'].min()), int(df['age'].max())
+        retiro_min, retiro_max = df['avg_amount_withdrawals'].min(), df['avg_amount_withdrawals'].max()
+        compra_min, compra_max = df['avg_purchases_per_week'].min(), df['avg_purchases_per_week'].max()
 
         edad = st.slider("Edad", edad_min, edad_max, (edad_min, edad_max))
         retiros = st.slider("Promedio de Retiros", float(retiro_min), float(retiro_max), (float(retiro_min), float(retiro_max)))
@@ -70,17 +66,51 @@ with st.sidebar:
 # =====================
 if aplicar_filtros:
     df_filtrado = df[
-        (df['Edad'].between(*edad)) &
-        (df['Promedio de Retiros'].between(*retiros)) &
-        (df['Compras por semana'].between(*compras)) &
+        (df['age'].between(*edad)) &
+        (df['avg_amount_withdrawals'].between(*retiros)) &
+        (df['avg_purchases_per_week'].between(*compras)) &
         (df['Clasificación Automática'].isin(tipos_seleccionados))
     ]
 else:
     df_filtrado = df.copy()
 
 # =====================
-# Mostrar resultados
+# Diccionario de nombres en español
 # =====================
-st.subheader("📋 Clientes Filtrados")
-st.dataframe(df_filtrado, use_container_width=True)
-st.markdown(f"🔎 Total mostrados: **{len(df_filtrado):,}** / 100,000")
+nombres_columnas_es = {
+    "user": "ID",
+    "age": "Edad",
+    "gender": "Género",
+    "marital_status": "Estado civil",
+    "education_level": "Nivel educativo",
+    "employment_status": "Ocupación",
+    "account_balance": "Capital",
+    "avg_amount_withdrawals": "Promedio de retiros",
+    "avg_purchases_per_week": "Compras por semana",
+    "is_homeowner": "Es propietario",
+    "has_credit_card": "Tiene tarjeta de crédito",
+    "num_products_owned": "Productos contratados",
+    "days_active_per_month": "Días activo por mes",
+    "device_type": "Tipo de dispositivo",
+    "region": "Región",
+    "Clasificación Automática": "Clasificación automática"
+}
+
+# =====================
+# Reordenar columnas para mostrar primero la "Capital" como índice visual
+# =====================
+df_mostrar = df_filtrado.copy()
+df_mostrar.index.name = "Capital"
+df_mostrar = df_mostrar.rename(columns=nombres_columnas_es)
+
+# Reordenar si quieres que "Nombre" esté al inicio
+if "ID" in df_mostrar.columns:
+    cols = df_mostrar.columns.tolist()
+    if "ID" in cols:
+        cols.remove("ID")
+        df_mostrar = df_mostrar[["ID"] + cols]
+
+st.subheader("📋 Clientes Visualizados")
+
+st.dataframe(df_mostrar, use_container_width=True)
+st.markdown(f"🔎 Total mostrados: **{len(df_mostrar):,}** / 100,000")
