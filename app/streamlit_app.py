@@ -49,10 +49,15 @@ df['credit_score'] = df.apply(
 )
 
 # =====================
-# Filtro por credit_score
+# Sidebar
 # =====================
 with st.sidebar:
     st.header("🔍 Filtros opcionales")
+
+    # Filtro por usuario individual
+    user_input = st.text_input("Buscar por usuario exacto", "")
+    
+    # Filtro por credit_score
     orden_credit = [
         '🔵 Premium Credit',
         '🟢 Basic Credit',
@@ -62,29 +67,67 @@ with st.sidebar:
     tipos_credito = [c for c in orden_credit if c in df['credit_score'].unique()]
     seleccionados = st.multiselect("Credit Score", tipos_credito, default=tipos_credito)
 
+# =====================
+# Filtro y visualización por usuario
+# =====================
+if user_input:
+    user_df = df[df['user'] == user_input]
+    if user_df.empty:
+        st.warning("⚠️ Usuario no encontrado.")
+    else:
+        st.subheader(f"📌 Información detallada de {user_input}")
+        st.dataframe(user_df, use_container_width=True)
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.metric("Edad", int(user_df.iloc[0]['age']))
+            fig = px.bar(x=["Edad"], y=[user_df.iloc[0]['age']])
+            fig.update_layout(title="Edad del usuario", height=250)
+            st.plotly_chart(fig, use_container_width=True)
+
+        with col2:
+            st.metric("Índice", int(user_df.iloc[0]['index']))
+            fig = px.bar(x=["Índice"], y=[user_df.iloc[0]['index']])
+            fig.update_layout(title="Índice del usuario", height=250)
+            st.plotly_chart(fig, use_container_width=True)
+
+        with col3:
+            st.metric("Tipo de Crédito", user_df.iloc[0]['credit_score'])
+            fig = px.bar(x=["Score"], y=[1], color=[user_df.iloc[0]['credit_score']])
+            fig.update_layout(title="Historial crediticio", height=250, showlegend=False)
+            st.plotly_chart(fig, use_container_width=True)
+
+        col4, col5 = st.columns(2)
+
+        with col4:
+            st.metric("Retiros promedio", f"${user_df.iloc[0]['avg_amount_withdrawals']:.2f}")
+            fig = px.line(x=[0, 1], y=[0, user_df.iloc[0]['avg_amount_withdrawals']])
+            fig.update_layout(title="Retiros promedio", height=250)
+            st.plotly_chart(fig, use_container_width=True)
+
+        with col5:
+            st.metric("Compras por semana", f"{user_df.iloc[0]['avg_purchases_per_week']:.2f}")
+            fig = px.line(x=[0, 1], y=[0, user_df.iloc[0]['avg_purchases_per_week']])
+            fig.update_layout(title="Compras por semana", height=250)
+            st.plotly_chart(fig, use_container_width=True)
+
+        st.stop()
+
+# =====================
+# Filtrar datos por Credit Score
+# =====================
 df_filtrado = df[df['credit_score'].isin(seleccionados)]
 
 # =====================
-# Reordenar columnas
-# =====================
-primeras_columnas = [
-    'user', 'age', 'index', 'credit_score',
-    'user_type', 'registration_channel', 'creation_flow',
-    'creation_date', 'avg_amount_withdrawals'
-]
-otras_columnas = sorted([col for col in df_filtrado.columns if col not in primeras_columnas])
-columnas_finales = primeras_columnas + otras_columnas
-df_mostrar = df_filtrado[columnas_finales]
-
-# =====================
-# Mostrar datos
+# Mostrar tabla
 # =====================
 st.subheader("📋 Clientes mostrados")
-st.dataframe(df_mostrar, use_container_width=True)
-st.markdown(f"🔎 Total mostrados: **{len(df_mostrar):,}** / 100,000")
+st.dataframe(df_filtrado, use_container_width=True)
+st.markdown(f"🔎 Total mostrados: **{len(df_filtrado):,}** / 100,000")
 
 # =====================
-# Gráfica principal por Credit Score
+# Gráfica por Credit Score
 # =====================
 if seleccionados:
     conteo = df_filtrado['credit_score'].value_counts().reindex(orden_credit).dropna().reset_index()
@@ -136,7 +179,7 @@ if seleccionados:
             st.plotly_chart(fig3, use_container_width=True)
 
 # =====================
-# Clustering automático de clientes
+# Agrupamiento automático
 # =====================
 st.subheader("🤖 Agrupamiento Inteligente (K-Means)")
 
