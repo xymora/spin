@@ -13,12 +13,7 @@ DATA_URL = "https://covenantaegis.com/segmentation_data_recruitment.csv"
 @st.cache_data
 def load_data():
     try:
-        df = pd.read_csv(DATA_URL)
-        # Convertir y limpiar columnas numéricas
-        df['avg_amount_withdrawals'] = pd.to_numeric(df['avg_amount_withdrawals'], errors='coerce').fillna(0)
-        df['avg_purchases_per_week'] = pd.to_numeric(df['avg_purchases_per_week'], errors='coerce').fillna(0)
-        df['age'] = pd.to_numeric(df['age'], errors='coerce').fillna(0).astype(int)
-        return df
+        return pd.read_csv(DATA_URL)
     except Exception as e:
         st.error(f"No se pudo cargar la base de datos: {e}")
         return pd.DataFrame()
