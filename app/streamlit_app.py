@@ -27,14 +27,14 @@ st.title("🏦 Dashboard de Clientes Bancarios")
 if df.empty:
     st.warning("No hay datos disponibles.")
 else:
-    st.write("🧾 Columnas del DataFrame:", df.columns.tolist())
-
+    # Clasificación automática
     if 'avg_amount_withdrawals' in df.columns and 'avg_purchase_per_week' in df.columns:
         df['Clasificación Automática'] = df.apply(
             lambda row: clasificar_riesgo(row['avg_amount_withdrawals'], row['avg_purchase_per_week']),
             axis=1
         )
 
+    # Sidebar de filtros
     with st.sidebar:
         st.header("🔍 Filtros")
         filtros = {}
@@ -53,11 +53,13 @@ else:
             if clasificaciones:
                 filtros['Clasificación Automática'] = clasificaciones
 
+    # Aplicar filtros
     df_filtrado = df.copy()
     for col, valores in filtros.items():
         if col in df_filtrado.columns:
             df_filtrado = df_filtrado[df_filtrado[col].isin(valores)]
 
+    # Mostrar resultados
     st.subheader("📋 Clientes Filtrados")
     st.dataframe(df_filtrado)
     st.markdown(f"🔎 Total encontrados: **{len(df_filtrado)}**")
