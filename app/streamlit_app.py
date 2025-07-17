@@ -60,8 +60,9 @@ with st.sidebar:
         retiro_range = st.slider("Retiros promedio", float(retiro_min), float(retiro_max), (float(retiro_min), float(retiro_max)))
         compra_range = st.slider("Compras por semana", float(compra_min), float(compra_max), (float(compra_min), float(compra_max)))
 
-        credit_types = df['credit_score'].unique().tolist()
-        selected_types = st.multiselect("Credit Score", sorted(credit_types), default=credit_types)
+        ordered_scores = ['🔵 Premium Credit', '🟢 Basic Credit', '🟡 Moderate Risk', '🔴 High Risk']
+        available_scores = [score for score in ordered_scores if score in df['credit_score'].unique()]
+        selected_types = st.multiselect("Credit Score", available_scores, default=available_scores)
 
 # =====================
 # Aplicar filtros
@@ -105,7 +106,7 @@ st.markdown(f"🔎 Total mostrados: **{len(df_display):,}** / 100,000")
 # Gráfica Credit Score
 # =====================
 if apply_filters and selected_types:
-    count_by_score = df_filtered['credit_score'].value_counts().reset_index()
+    count_by_score = df_filtered['credit_score'].value_counts().reindex(ordered_scores).dropna().reset_index()
     count_by_score.columns = ['credit_score', 'count']
 
     fig = px.bar(
@@ -115,7 +116,7 @@ if apply_filters and selected_types:
         color='credit_score',
         text='count',
         title='Distribución de clientes por tipo de Credit Score',
-        color_discrete_sequence=["red", "gold", "green", "blue"]
+        color_discrete_sequence=["blue", "green", "gold", "red"]
     )
     fig.update_traces(textposition='outside')
     fig.update_layout(
