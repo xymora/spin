@@ -36,7 +36,7 @@ def clasificar_riesgo(retiros, compras):
     else:
         return '🔴 Riesgo Alto'
 
-df['Clasificación Automática'] = df.apply(
+df['Clasificación automática'] = df.apply(
     lambda row: clasificar_riesgo(row['avg_amount_withdrawals'], row['avg_purchases_per_week']),
     axis=1
 )
@@ -58,59 +58,59 @@ with st.sidebar:
         retiros = st.slider("Promedio de Retiros", float(retiro_min), float(retiro_max), (float(retiro_min), float(retiro_max)))
         compras = st.slider("Compras por semana", float(compra_min), float(compra_max), (float(compra_min), float(compra_max)))
 
-        tipos_credito = df['Clasificación Automática'].unique().tolist()
+        tipos_credito = df['Clasificación automática'].unique().tolist()
         tipos_seleccionados = st.multiselect("Tipo de crédito", sorted(tipos_credito), default=tipos_credito)
 
 # =====================
 # Aplicar filtros
 # =====================
 if aplicar_filtros:
-    df_filtrado = df[
+    df = df[
         (df['age'].between(*edad)) &
         (df['avg_amount_withdrawals'].between(*retiros)) &
         (df['avg_purchases_per_week'].between(*compras)) &
-        (df['Clasificación Automática'].isin(tipos_seleccionados))
+        (df['Clasificación automática'].isin(tipos_seleccionados))
     ]
-else:
-    df_filtrado = df.copy()
 
 # =====================
-# Diccionario de nombres en español
+# Renombrar columnas al español
 # =====================
-nombres_columnas_es = {
+traducciones = {
     "user": "ID",
+    "index": "Capital",
+    "ID Cliente": "Nombre",
     "age": "Edad",
     "gender": "Género",
     "marital_status": "Estado civil",
     "education_level": "Nivel educativo",
     "employment_status": "Ocupación",
     "account_balance": "Capital",
-    "avg_amount_withdrawals": "Promedio de retiros",
+    "avg_amount_withdrawals": "Promedio de retiro",
     "avg_purchases_per_week": "Compras por semana",
-    "is_homeowner": "Es propietario",
-    "has_credit_card": "Tiene tarjeta de crédito",
+    "is_homeowner": "Propietario",
+    "has_credit_card": "Tarjeta de crédito",
     "num_products_owned": "Productos contratados",
-    "days_active_per_month": "Días activo por mes",
+    "days_active_per_month": "Días activo/mes",
     "device_type": "Tipo de dispositivo",
     "region": "Región",
-    "Clasificación Automática": "Clasificación automática"
+    "creation_date": "Fecha creación",
+    "registration_channel": "Canal de registro",
+    "creation_flow": "Flujo de creación",
+    "first_transaction_date_withdrawals": "1ra transacción retiro",
+    "last_transaction_date_withdrawals": "Última transacción retiro",
+    "total_tickets_withdrawals": "Boletos retiro",
+    "instore_transactions_last_30d": "Compras tienda (30d)",
+    "app_transactions_last_30d": "Compras app (30d)",
+    "Clasificación automática": "Clasificación automática"
 }
 
-# =====================
-# Reordenar columnas para mostrar primero la "Capital" como índice visual
-# =====================
-df_mostrar = df_filtrado.copy()
-df_mostrar.index.name = "Capital"
-df_mostrar = df_mostrar.rename(columns=nombres_columnas_es)
+# Aplicar traducciones visuales
+df_vista = df.copy()
+df_vista.columns = [traducciones.get(col, col) for col in df.columns]
 
-# Reordenar si quieres que "Nombre" esté al inicio
-if "ID" in df_mostrar.columns:
-    cols = df_mostrar.columns.tolist()
-    if "ID" in cols:
-        cols.remove("ID")
-        df_mostrar = df_mostrar[["ID"] + cols]
-
+# =====================
+# Mostrar tabla
+# =====================
 st.subheader("📋 Clientes Visualizados")
-
-st.dataframe(df_mostrar, use_container_width=True)
-st.markdown(f"🔎 Total mostrados: **{len(df_mostrar):,}** / 100,000")
+st.dataframe(df_vista, use_container_width=True)
+st.markdown(f"🔎 Total mostrados: **{len(df_vista):,}** / 100,000")
