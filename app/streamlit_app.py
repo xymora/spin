@@ -5,7 +5,6 @@ import plotly.express as px
 from scipy.stats import gaussian_kde
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
-import joblib
 
 st.set_page_config(page_title="Dashboard de Clientes Bancarios", layout="wide")
 st.title("🏦 Dashboard de Clientes Bancarios")
@@ -135,37 +134,6 @@ for score in seleccionados:
         st.plotly_chart(fig3, use_container_width=True)
 
 # =====================
-# Visualización individual por usuario
-# =====================
-if buscar and usuario:
-    user_data = df[df['user'] == usuario]
-    if user_data.empty:
-        st.warning("Usuario no encontrado.")
-    else:
-        st.markdown(f"## 📌 Detalles del usuario `{usuario}`")
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Edad", int(user_data['age'].values[0]))
-        col2.metric("Índice", int(user_data['index'].values[0]))
-        col3.metric("Credit Score", user_data['credit_score'].values[0])
-
-        col1.metric("Retiros promedio", f"${user_data['avg_amount_withdrawals'].values[0]:,.2f}")
-        col2.metric("Compras x semana", user_data['avg_purchases_per_week'].values[0])
-        col3.metric("Historial crediticio", user_data['credit_score'].values[0])
-
-        st.markdown("### 📈 Gráficas personales")
-        fig_u1 = px.bar(user_data, x="user", y="age", title="Edad del usuario")
-        fig_u2 = px.bar(user_data, x="user", y="index", title="Índice")
-        fig_u3 = px.bar(user_data, x="user", y="avg_amount_withdrawals", title="Retiros promedio")
-        fig_u4 = px.line(user_data, x="user", y="avg_purchases_per_week", title="Compras por semana")
-        fig_u5 = px.pie(user_data, names="credit_score", title="Tipo de Credit Score")
-
-        st.plotly_chart(fig_u1, use_container_width=True)
-        st.plotly_chart(fig_u2, use_container_width=True)
-        st.plotly_chart(fig_u3, use_container_width=True)
-        st.plotly_chart(fig_u4, use_container_width=True)
-        st.plotly_chart(fig_u5, use_container_width=True)
-
-# =====================
 # Clustering automático de clientes
 # =====================
 st.subheader("🤖 Agrupamiento Inteligente (K-Means)")
@@ -185,4 +153,37 @@ fig_cluster = px.scatter_3d(
     df, x='avg_amount_withdrawals', y='avg_purchases_per_week', z='age',
     color='cluster', title="Agrupamiento de Clientes (K-Means)"
 )
+fig_cluster.update_layout(height=500)
 st.plotly_chart(fig_cluster, use_container_width=True)
+
+# =====================
+# Visualización individual por usuario
+# =====================
+if buscar and usuario:
+    user_data = df[df['user'] == usuario]
+    if user_data.empty:
+        st.warning("Usuario no encontrado.")
+    else:
+        st.markdown(f"## 📌 Detalles del usuario `{usuario}`")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Edad", int(user_data['age'].values[0]))
+        col2.metric("Índice", int(user_data['index'].values[0]))
+        col3.metric("Credit Score", user_data['credit_score'].values[0])
+
+        col1.metric("Retiros promedio", f"${user_data['avg_amount_withdrawals'].values[0]:,.2f}")
+        col2.metric("Compras x semana", user_data['avg_purchases_per_week'].values[0])
+        col3.metric("Historial crediticio", user_data['credit_score'].values[0])
+
+        st.markdown("### 📈 Gráficas personales")
+        row1_col1, row1_col2 = st.columns(2)
+        row2_col1, row2_col2 = st.columns(2)
+
+        fig_u1 = px.bar(user_data, x="user", y="avg_amount_withdrawals", title="Retiros promedio")
+        fig_u2 = px.pie(user_data, names="credit_score", title="Tipo de Score")
+        fig_u3 = px.scatter(user_data, x="age", y="avg_purchases_per_week", title="Edad vs Compras")
+        fig_u4 = px.line(user_data, x="user", y="index", title="Índice del cliente")
+
+        row1_col1.plotly_chart(fig_u1, use_container_width=True)
+        row1_col2.plotly_chart(fig_u2, use_container_width=True)
+        row2_col1.plotly_chart(fig_u3, use_container_width=True)
+        row2_col2.plotly_chart(fig_u4, use_container_width=True)
