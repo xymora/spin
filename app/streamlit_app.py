@@ -6,16 +6,17 @@ import plotly.express as px
 st.set_page_config(page_title="Dashboard de Clientes Bancarios", layout="wide")
 st.title("🏦 Dashboard de Clientes Bancarios")
 
+# =====================
+# Cargar datos
+# =====================
 DATA_URL = "https://covenantaegis.com/segmentation_data_recruitment.csv"
 
 @st.cache_data
 def load_data():
     try:
         df = pd.read_csv(DATA_URL)
-        # Asegurar tipos numéricos sin perder registros
-        df['avg_amount_withdrawals'] = pd.to_numeric(df['avg_amount_withdrawals'], errors='coerce')
-        df['avg_purchases_per_week'] = pd.to_numeric(df['avg_purchases_per_week'], errors='coerce')
-        df.fillna({'avg_amount_withdrawals': 0, 'avg_purchases_per_week': 0}, inplace=True)
+        df['avg_amount_withdrawals'] = pd.to_numeric(df['avg_amount_withdrawals'], errors='coerce').fillna(0)
+        df['avg_purchases_per_week'] = pd.to_numeric(df['avg_purchases_per_week'], errors='coerce').fillna(0)
         return df
     except Exception as e:
         st.error(f"No se pudo cargar la base de datos: {e}")
@@ -25,7 +26,9 @@ df = load_data()
 if df.empty:
     st.stop()
 
-# Clasificación crediticia sin excluir registros
+# =====================
+# Clasificación crediticia
+# =====================
 def classify_credit(withdrawals, purchases):
     if withdrawals > 50000 and purchases == 0:
         return '🔵 Premium Credit'
@@ -41,37 +44,25 @@ df['credit_score'] = df.apply(
     axis=1
 )
 
-# Filtros laterales
+# =====================
+# Filtro por credit_score
+# =====================
 with st.sidebar:
     st.header("🔍 Filtros opcionales")
-    aplicar_filtros = st.checkbox("Aplicar filtros", value=False)
-
-    if aplicar_filtros:
-        edad_rango = st.slider("Edad", int(df['age'].min()), int(df['age'].max()), (18, 80))
-        retiro_rango = st.slider("Retiros promedio", float(df['avg_amount_withdrawals'].min()), float(df['avg_amount_withdrawals'].max()), (0.0, 100000.0))
-        compra_rango = st.slider("Compras por semana", float(df['avg_purchases_per_week'].min()), float(df['avg_purchases_per_week'].max()), (0.0, 10.0))
-
-        orden_credit = [
-            '🔵 Premium Credit',
-            '🟢 Basic Credit',
-            '🟡 Moderate Risk',
-            '🔴 High Risk'
-        ]
-        tipos_credito = [c for c in orden_credit if c in df['credit_score'].unique()]
-        seleccionados = st.multiselect("Credit Score", tipos_credito, default=tipos_credito)
-
-# Aplicar filtros
-if aplicar_filtros:
-    df_filtrado = df[
-        (df['age'].between(*edad_rango)) &
-        (df['avg_amount_withdrawals'].between(*retiro_rango)) &
-        (df['avg_purchases_per_week'].between(*compra_rango)) &
-        (df['credit_score'].isin(seleccionados))
+    orden_credit = [
+        '🔵 Premium Credit',
+        '🟢 Basic Credit',
+        '🟡 Moderate Risk',
+        '🔴 High Risk'
     ]
-else:
-    df_filtrado = df.copy()
+    tipos_credito = [c for c in orden_credit if c in df['credit_score'].unique()]
+    seleccionados = st.multiselect("Credit Score", tipos_credito, default=tipos_credito)
 
+df_filtrado = df[df['credit_score'].isin(seleccionados)]
+
+# =====================
 # Reordenar columnas
+# =====================
 primeras_columnas = [
     'user',
     'age',
@@ -87,13 +78,17 @@ otras_columnas = sorted([col for col in df_filtrado.columns if col not in primer
 columnas_finales = primeras_columnas + otras_columnas
 df_mostrar = df_filtrado[columnas_finales]
 
+# =====================
 # Mostrar datos
+# =====================
 st.subheader("📋 Clientes mostrados")
 st.dataframe(df_mostrar, use_container_width=True)
 st.markdown(f"🔎 Total mostrados: **{len(df_mostrar):,}** / 100,000")
 
+# =====================
 # Gráfica principal
-if aplicar_filtros and seleccionados:
+# =====================
+if seleccionados:
     conteo = df_filtrado['credit_score'].value_counts().reindex(orden_credit).dropna().reset_index()
     conteo.columns = ['credit_score', 'count']
     fig = px.bar(
@@ -107,7 +102,6 @@ if aplicar_filtros and seleccionados:
     fig.update_traces(textposition='outside')
     st.plotly_chart(fig, use_container_width=True)
 
-    # Gráficas detalladas
     st.subheader("📊 Análisis Financiero por Credit Score")
     for score in seleccionados:
         sub_df = df_filtrado[df_filtrado['credit_score'] == score]
