@@ -111,28 +111,26 @@ if seleccionados:
                 ordenados,
                 x='creation_date',
                 y='avg_amount_withdrawals',
-                title="Retiros promedio a lo largo del tiempo"
             )
             fig1.update_layout(height=250, xaxis_title="Fecha", yaxis_title="Monto")
             st.plotly_chart(fig1, use_container_width=True)
 
         # Compras por semana: pastel
         with col2:
-            bins = [0, 1, 2, 3, 5, 10]
+            bins = [0, 1, 2, 3, 5, 10, np.inf]
             labels = ['0', '1', '2', '3-4', '5-9', '10+']
-            compras = pd.cut(
+            compras_categ = pd.cut(
                 sub_df['avg_purchases_per_week'],
-                bins=bins + [np.inf],
+                bins=bins,
                 labels=labels,
                 right=False
             )
-            compras_counts = compras.value_counts().sort_index().reset_index()
+            compras_counts = compras_categ.value_counts().sort_index().reset_index()
             compras_counts.columns = ['compras', 'count']
             fig2 = px.pie(
                 compras_counts,
                 names='compras',
                 values='count',
-                title="Promedio de compras semanales"
             )
             fig2.update_layout(height=250)
             st.plotly_chart(fig2, use_container_width=True)
@@ -145,7 +143,6 @@ if seleccionados:
                 nbins=30,
                 histnorm="probability density",
                 opacity=0.6,
-                title="Distribución de edad"
             )
             kde = gaussian_kde(edades)
             x_vals = np.linspace(edades.min(), edades.max(), 200)
