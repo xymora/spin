@@ -65,9 +65,15 @@ df_filtrado = df[df['credit_score'].isin(seleccionados)]
 # Reordenar columnas
 # =====================
 primeras_columnas = [
-    'user', 'age', 'index', 'credit_score',
-    'user_type', 'registration_channel', 'creation_flow',
-    'creation_date', 'avg_amount_withdrawals'
+    'user',
+    'age',
+    'index',
+    'credit_score',
+    'user_type',
+    'registration_channel',
+    'creation_flow',
+    'creation_date',
+    'avg_amount_withdrawals'
 ]
 otras_columnas = sorted([col for col in df_filtrado.columns if col not in primeras_columnas])
 columnas_finales = primeras_columnas + otras_columnas
@@ -90,7 +96,6 @@ if seleccionados:
         conteo,
         x='credit_score', y='count',
         color='credit_score', text='count',
-        title="Distribución de clientes por tipo de Credit Score",
         color_discrete_sequence=["blue", "green", "gold", "red"]
     )
     fig.update_layout(showlegend=False, height=400)
@@ -104,18 +109,16 @@ if seleccionados:
 
         col1, col2, col3 = st.columns(3)
 
-        # Retiros promedio: línea
+        # Retiros promedio (gráfica de línea)
         with col1:
-            ordenados = sub_df.sort_values('creation_date')
-            fig1 = px.line(
-                ordenados,
-                x='creation_date',
-                y='avg_amount_withdrawals',
-            )
-            fig1.update_layout(height=250, xaxis_title="Fecha", yaxis_title="Monto")
+            retiros = sub_df['avg_amount_withdrawals']
+            line_df = pd.DataFrame({'retiros': retiros})
+            line_df['index'] = np.arange(len(line_df))
+            fig1 = px.line(line_df, x='index', y='retiros')
+            fig1.update_layout(height=250, showlegend=False)
             st.plotly_chart(fig1, use_container_width=True)
 
-        # Compras por semana: pastel
+        # Compras por semana (barras separadas)
         with col2:
             bins = [0, 1, 2, 3, 5, 10, np.inf]
             labels = ['0', '1', '2', '3-4', '5-9', '10+']
@@ -127,27 +130,24 @@ if seleccionados:
             )
             compras_counts = compras_categ.value_counts().sort_index().reset_index()
             compras_counts.columns = ['compras', 'count']
-            fig2 = px.pie(
+            fig2 = px.bar(
                 compras_counts,
-                names='compras',
-                values='count',
+                x='compras',
+                y='count',
+                text='count',
+                color='compras',
+                color_discrete_sequence=px.colors.sequential.Teal
             )
-            fig2.update_layout(height=250)
+            fig2.update_layout(height=250, showlegend=False)
+            fig2.update_traces(textposition='outside')
             st.plotly_chart(fig2, use_container_width=True)
 
-        # Distribución de edad: histograma + KDE
+        # Distribución de edad (curva tipo Gauss)
         with col3:
-            edades = sub_df['age'].dropna()
-            fig3 = px.histogram(
-                edades,
-                nbins=30,
-                histnorm="probability density",
-                opacity=0.6,
-            )
-            kde = gaussian_kde(edades)
-            x_vals = np.linspace(edades.min(), edades.max(), 200)
-            y_vals = kde(x_vals)
-
-            fig3.add_scatter(x=x_vals, y=y_vals, mode='lines', name='KDE', line=dict(color='firebrick'))
-            fig3.update_layout(height=250, xaxis_title="Edad", yaxis_title="Densidad")
+            x = sub_df['age'].dropna()
+            kde = gaussian_kde(x)
+            x_grid = np.linspace(x.min(), x.max(), 200)
+            y_kde = kde(x_grid)
+            fig3 = px.area(x=x_grid, y=y_kde)
+            fig3.update_layout(height=250, showlegend=False)
             st.plotly_chart(fig3, use_container_width=True)
