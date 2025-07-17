@@ -28,8 +28,6 @@ try:
 except ImportError:
     plt = None
     logging.warning('Matplotlib no está instalado: algunas funciones de visualización no estarán disponibles')
-import logging
-import time
 
 # ======================================
 # Dashboard Senior Data Science - 300+ Lines
@@ -146,7 +144,6 @@ cols[5].metric("Activity Score", f"{avgs['activity_score']:.2f}")
 # 6. Filtros Avanzados Sidebar
 # --------------------------------------
 st.sidebar.header("🔍 Filtros y Segmentación")
-# Expander para filtros avanzados
 with st.sidebar.expander("Configuración de filtros"):
     credit_order = ['🔵 Premium Credit','🟢 Basic Credit','🟡 Moderate Risk','🔴 High Risk']
     selected_scores = st.multiselect(
@@ -160,7 +157,7 @@ with st.sidebar.expander("Configuración de filtros"):
         "Rango Activity Score", float(df['activity_score'].min()), float(df['activity_score'].max()),
         (float(df['activity_score'].min()), float(df['activity_score'].max()))
     )
-    n_clusters = st.selectbox("Número de Cluster (K-Means)", [2,3,4,5,6,7], index=2)
+    n_clusters = st.selectbox("Número de Clusters (K-Means)", [2,3,4,5,6,7], index=2)
 
 # Aplicar filtros
 mask = (
@@ -175,16 +172,14 @@ st.markdown(f"Filtrados: **{len(df_filtered):,}** de {total_clients:,} clientes"
 # 7. Vista de Datos
 # --------------------------------------
 st.subheader("📋 Vista de Tabla Filtrada")
-st.dataframe(
-    df_filtered.style.format({
-        'avg_amount_withdrawals':'${:,.0f}',
-        'avg_amount_purchases':'${:,.0f}',
-        'avg_purchases_per_week':'{:.2f}',
-        'withdrawal_to_purchase_ratio':'{:.2f}',
-        'activity_score':'{:.2f}'
-    }),
-    use_container_width=True
-)
+styled_df = df_filtered.style.format({
+    'avg_amount_withdrawals':'${:,.0f}',
+    'avg_amount_purchases':'${:,.0f}',
+    'avg_purchases_per_week':'{:.2f}',
+    'withdrawal_to_purchase_ratio':'{:.2f}',
+    'activity_score':'{:.2f}'
+})
+st.write(styled_df)
 
 # --------------------------------------
 # 8. Visualizaciones Avanzadas
@@ -197,31 +192,13 @@ fig_box = px.box(
 )
 st.plotly_chart(fig_box, use_container_width=True)
 
-# Heatmap correlación
-corr = df_filtered.select_dtypes(include=[np.number]).corr()
-fig_heat = go.Figure(data=go.Heatmap(
-    z=corr.values,
-    x=corr.columns,
-    y=corr.index,
-    colorscale='Viridis'
-))
-fig_heat.update_layout(title='Mapa de Correlación Numérica', height=500)
-st.plotly_chart(fig_heat, use_container_width=True)
-
-# Scatter Matrix
-dims = ['avg_amount_withdrawals','avg_amount_purchases','age','activity_score']
-fig_scatter = px.scatter_matrix(
-    df_filtered, dimensions=dims, color='credit_score', title='Scatter Matrix'
-)
-st.plotly_chart(fig_scatter, use_container_width=True)
-
 # Elbow Method para K-Means
 st.markdown("**Análisis de Codo (Elbow Method) para K-Means**")
 inertia = []
-K = range(1,10)
+K = range(1,11)
 for k in K:
     km = KMeans(n_clusters=k, random_state=42)
-    km.fit(df_filtered[dims])
+    km.fit(df_filtered[['avg_amount_withdrawals','avg_amount_purchases','age','activity_score']])
     inertia.append(km.inertia_)
 fig_elbow = px.line(
     x=list(K), y=inertia, markers=True,
@@ -230,10 +207,10 @@ fig_elbow = px.line(
 )
 st.plotly_chart(fig_elbow, use_container_width=True)
 
-# K-Means con elegidos clusters
+# Clustering K-Means Dinámico
 st.subheader(f"🤖 Clustering K-Means (K={n_clusters})")
 km = KMeans(n_clusters=n_clusters, random_state=42)
-df_filtered['cluster'] = km.fit_predict(df_filtered[dims])
+df_filtered['cluster'] = km.fit_predict(df_filtered[['avg_amount_withdrawals','avg_amount_purchases','age','activity_score']])
 fig_cluster = px.scatter_3d(
     df_filtered, x='avg_amount_withdrawals', y='avg_amount_purchases', z='age',
     color='cluster', title='Clustering 3D', height=600
@@ -243,7 +220,7 @@ st.plotly_chart(fig_cluster, use_container_width=True)
 # Silhouette Score
 st.markdown("**Silhouette Score:**")
 if n_clusters > 1:
-    score = silhouette_score(df_filtered[dims], df_filtered['cluster'])
+    score = silhouette_score(df_filtered[['avg_amount_withdrawals','avg_amount_purchases','age','activity_score']], df_filtered['cluster'])
     st.write(f"Silhouette Score para K={n_clusters}: {score:.2f}")
 else:
     st.warning("No se puede calcular Silhouette Score para un cluster (K=1)")
@@ -252,20 +229,19 @@ else:
 # 9. Modelado Predictivo
 # --------------------------------------
 st.subheader("🤖 Modelado Predictivo: Credit Score")
-# Preparar X, y
-features = ['avg_amount_withdrawals','avg_amount_purchases','avg_purchases_per_week','age','withdrawal_to_purchase_ratio','activity_score']
-X = df_filtered[features]
-y = df_filtered['credit_score'].map({c:i for i,c in enumerate(credit_order)})
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.3, stratify=y, random_state=42
-)
+# Preparar datos de entrenamiento
+def encode_scores(df):
+    mapping = {'🔵 Premium Credit':0, '🟢 Basic Credit':1, '🟡 Moderate Risk':2, '🔴 High Risk':3}
+    return df['credit_score'].map(mapping)
 
-# Entrenar RandomForest + GradientBoosting
+y = encode_scores(df_filtered)
+X = df_filtered[['avg_amount_withdrawals','avg_amount_purchases','avg_purchases_per_week','age','withdrawal_to_purchase_ratio','activity_score']]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, stratify=y, random_state=42)
+
 models = {
     'RandomForest': RandomForestClassifier(random_state=42),
     'GradientBoosting': GradientBoostingClassifier(random_state=42)
 }
-
 results = {}
 for name, model in models.items():
     grid = GridSearchCV(
@@ -274,20 +250,18 @@ for name, model in models.items():
         cv=3
     )
     grid.fit(X_train, y_train)
-    best_model = grid.best_estimator_
-    y_pred = best_model.predict(X_test)
+    best = grid.best_estimator_
+    y_pred = best.predict(X_test)
     report = classification_report(y_test, y_pred, output_dict=True)
     results[name] = report
     st.markdown(f"**{name} - Mejor Parámetros:** {grid.best_params_}")
-    st.text(classification_report(y_test, y_pred))
+    st.text(classification_report(y_test, y_pred, target_names=list({'🔵 Premium Credit','🟢 Basic Credit','🟡 Moderate Risk','🔴 High Risk'})))
 
-# Comparar F1-score promedio
+# Comparativa F1-score
 f1_scores = {name: results[name]['macro avg']['f1-score'] for name in results}
-fig_comp = go.Figure(
-    data=[go.Bar(x=list(f1_scores.keys()), y=list(f1_scores.values()))]
-)
-fig_comp.update_layout(title='Comparativa F1-score Macro')
-st.plotly_chart(fig_comp, use_container_width=True)
+fig_f1 = go.Figure(data=[go.Bar(x=list(f1_scores.keys()), y=list(f1_scores.values()))])
+fig_f1.update_layout(title='Comparativa F1-score Macro')
+st.plotly_chart(fig_f1, use_container_width=True)
 
 # --------------------------------------
 # 10. Export y Feedback
@@ -297,35 +271,23 @@ csv_data = df_filtered.to_csv(index=False).encode('utf-8')
 st.download_button(
     label="Exportar Datos Filtrados CSV",
     data=csv_data,
-    file_name='clientes_bancarios_filtrados.csv',
+    file_name='clientes_filtrados.csv',
     mime='text/csv'
 )
 feedback = st.text_area("Comentarios / Feedback:", placeholder="Escribe tu feedback aquí...")
 if st.button("Enviar Feedback"):
     st.success("¡Gracias por tu feedback!")
 
-# ======================================
-# Fin del Dashboard - Data Science Senior
-# ======================================
-
-
-# EOF
-
-# ----------------------------
-# Helper: muestra función adicional
-# ----------------------------
+# --------------------------------------
+# 11. Estadísticos Descriptivos
+# --------------------------------------
 def describe_dataset(df):
-    """
-    Imprime estadísticas descriptivas del dataset.
-    """
-    desc = df.describe()
-    return desc
+    return df.describe()
 
 if st.sidebar.checkbox("Mostrar estadísticos descriptivos"):
     st.subheader("📑 Estadísticos descriptivos")
-    st.write(describe_dataset(df))
+    st.write(describe_dataset(df_filtered))
 
-# ----------------------------
-# Línea final de control
-# ----------------------------
-logger.info("Dashboard renderizado satisfactoriamente.")
+# ======================================
+# Fin del Dashboard - Data Science Senior
+# ======================================
