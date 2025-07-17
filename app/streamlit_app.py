@@ -83,7 +83,7 @@ if btn_borrar.button("Borrar"):
     st.session_state.search = False
 
 # Control de búsqueda
-deferenced = st.session_state.get('search', False)
+search_active = st.session_state.get('search', False)
 
 # Filtrar DataFrame
 filtered_df = df[df['credit_score'].isin(selected_scores)].copy()
@@ -147,7 +147,7 @@ fig_cluster = px.scatter_3d(df, x='avg_amount_withdrawals', y='avg_purchases_per
 st.plotly_chart(fig_cluster, use_container_width=True)
 
 # Detalle por usuario
-if dereferenced and st.session_state.user_input:
+if search_active and st.session_state.user_input:
     user_df = df[df['user'] == st.session_state.user_input]
     if user_df.empty:
         st.warning("Usuario no encontrado.")
@@ -159,13 +159,15 @@ if dereferenced and st.session_state.user_input:
         m3.metric("Credit Score", user_df['credit_score'].iat[0])
         m4, m5, m6 = st.columns(3)
         m4.metric("Retiros promedio", f"${user_df['avg_amount_withdrawals'].iat[0]:,.2f}")
-        m5.metric("Compras x semana", round(user_df['avg_purchases_per_week'].iat[0],2))
+        m5.metric("Compras x semana", round(user_df['avg_purchases_per_week'].iat[0], 2))
         m6.metric("Tipo usuario", user_df['user_type'].iat[0])
         st.markdown("### 📈 Gráficas personales")
         r1, r2 = st.columns(2)
-        fig_list = [px.bar(user_df, x='user', y='avg_amount_withdrawals', title="Retiros"),
-                    px.pie(user_df, names='credit_score', title="Score"),
-                    px.scatter(user_df, x='age', y='avg_purchases_per_week', title="Edad vs Compras"),
-                    px.line(user_df, x='user', y='index', title="Índice")]
+        fig_list = [
+            px.bar(user_df, x='user', y='avg_amount_withdrawals', title="Retiros"),
+            px.pie(user_df, names='credit_score', title="Score"),
+            px.scatter(user_df, x='age', y='avg_purchases_per_week', title="Edad vs Compras"),
+            px.line(user_df, x='user', y='index', title="Índice")
+        ]
         for col, fig in zip([r1, r1, r2, r2], fig_list):
             col.plotly_chart(fig, use_container_width=True)
