@@ -153,7 +153,9 @@ for score in selected_scores:
                 title="Compras promedio por semana", height=250
             )
             fig2.update_traces(textposition='outside')
-            st.plotly_chart(fig2, use_container_width=True)        with c3:
+            st.plotly_chart(fig2, use_container_width=True)
+
+        with c3:
             # Distribución de edad (KDE) - requiere al menos 2 puntos
             if sub['age'].size > 1:
                 kde = gaussian_kde(sub['age'])
