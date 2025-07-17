@@ -1,44 +1,25 @@
 import streamlit as st
 import pandas as pd
-import firebase_admin
-from firebase_admin import credentials, firestore
-import json
 
-firestore_active = False
-try:
-    if not firebase_admin._apps:
-        cred = credentials.Certificate(dict(st.secrets["firebase"]))
-        firebase_admin.initialize_app(cred)
-    db = firestore.client()
-    collection_name = "clients"
-    firestore_active = True
-except Exception as e:
-    st.warning(f"Firebase error: {e}")
-    firestore_active = False
+# URL directa del CSV (sin descarga previa)
+DATA_URL = "https://covenantaegis.com/segmentation_data_recruitment.csv"
 
 @st.cache_data
 def load_data():
-    if firestore_active:
-        try:
-            docs = db.collection(collection_name).stream()
-            data = [doc.to_dict() for doc in docs]
-            return pd.DataFrame(data)
-        except:
-            pass
     try:
-        url = "https://covenantaegis.com/segmentation_data_recruitment.csv"
-        return pd.read_csv(url)
-    except:
-        st.error("No se pudo cargar los datos.")
+        return pd.read_csv(DATA_URL)
+    except Exception as e:
+        st.error(f"❌ Error al cargar los datos desde la URL: {e}")
         return pd.DataFrame()
 
+# Función para clasificar riesgo financiero
 def clasificar_riesgo(ingreso, pagos):
     try:
         ingreso = float(ingreso)
         pagos = int(pagos)
     except:
         return '❓ No evaluado'
-
+    
     if ingreso > 50000 and pagos == 0:
         return '🔵 Crédito Premium'
     elif ingreso > 20000 and pagos <= 1:
@@ -48,6 +29,7 @@ def clasificar_riesgo(ingreso, pagos):
     else:
         return '🔴 Alto Riesgo'
 
+# Carga de datos
 df = load_data()
 st.title("🏦 Dashboard de Clientes Bancarios")
 
