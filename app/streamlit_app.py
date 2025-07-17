@@ -78,13 +78,13 @@ else:
 # Diccionario de nombres en español
 # =====================
 nombres_columnas_es = {
-    "user": "ID Cliente",
+    "user": "ID",
     "age": "Edad",
     "gender": "Género",
     "marital_status": "Estado civil",
     "education_level": "Nivel educativo",
     "employment_status": "Ocupación",
-    "account_balance": "Saldo en cuenta",
+    "account_balance": "Capital",
     "avg_amount_withdrawals": "Promedio de retiros",
     "avg_purchases_per_week": "Compras por semana",
     "is_homeowner": "Es propietario",
@@ -93,14 +93,24 @@ nombres_columnas_es = {
     "days_active_per_month": "Días activo por mes",
     "device_type": "Tipo de dispositivo",
     "region": "Región",
-    "Clasificación Automática": "Clasificación Automática"
+    "Clasificación Automática": "Clasificación automática"
 }
 
 # =====================
-# Mostrar resultados con encabezados en español
+# Reordenar columnas para mostrar primero la "Capital" como índice visual
 # =====================
+df_mostrar = df_filtrado.copy()
+df_mostrar.index.name = "Capital"
+df_mostrar = df_mostrar.rename(columns=nombres_columnas_es)
+
+# Reordenar si quieres que "Nombre" esté al inicio
+if "ID" in df_mostrar.columns:
+    cols = df_mostrar.columns.tolist()
+    if "ID" in cols:
+        cols.remove("ID")
+        df_mostrar = df_mostrar[["ID"] + cols]
+
 st.subheader("📋 Clientes Visualizados")
 
-df_mostrar = df_filtrado.rename(columns=nombres_columnas_es)
 st.dataframe(df_mostrar, use_container_width=True)
-st.markdown(f"🔎 Total mostrados: **{len(df_filtrado):,}** / 100,000")
+st.markdown(f"🔎 Total mostrados: **{len(df_mostrar):,}** / 100,000")
