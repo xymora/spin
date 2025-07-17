@@ -12,8 +12,10 @@ DATA_URL = "https://covenantaegis.com/segmentation_data_recruitment.csv"
 def load_data():
     try:
         df = pd.read_csv(DATA_URL)
-        df['avg_amount_withdrawals'] = pd.to_numeric(df['avg_amount_withdrawals'], errors='coerce').fillna(0)
-        df['avg_purchases_per_week'] = pd.to_numeric(df['avg_purchases_per_week'], errors='coerce').fillna(0)
+        # Asegurar tipos numéricos sin perder registros
+        df['avg_amount_withdrawals'] = pd.to_numeric(df['avg_amount_withdrawals'], errors='coerce')
+        df['avg_purchases_per_week'] = pd.to_numeric(df['avg_purchases_per_week'], errors='coerce')
+        df.fillna({'avg_amount_withdrawals': 0, 'avg_purchases_per_week': 0}, inplace=True)
         return df
     except Exception as e:
         st.error(f"No se pudo cargar la base de datos: {e}")
@@ -23,6 +25,7 @@ df = load_data()
 if df.empty:
     st.stop()
 
+# Clasificación crediticia sin excluir registros
 def classify_credit(withdrawals, purchases):
     if withdrawals > 50000 and purchases == 0:
         return '🔵 Premium Credit'
@@ -38,7 +41,7 @@ df['credit_score'] = df.apply(
     axis=1
 )
 
-# Filtros
+# Filtros laterales
 with st.sidebar:
     st.header("🔍 Filtros opcionales")
     aplicar_filtros = st.checkbox("Aplicar filtros", value=False)
@@ -89,7 +92,7 @@ st.subheader("📋 Clientes mostrados")
 st.dataframe(df_mostrar, use_container_width=True)
 st.markdown(f"🔎 Total mostrados: **{len(df_mostrar):,}** / 100,000")
 
-# Gráfica principal de Credit Score
+# Gráfica principal
 if aplicar_filtros and seleccionados:
     conteo = df_filtrado['credit_score'].value_counts().reindex(orden_credit).dropna().reset_index()
     conteo.columns = ['credit_score', 'count']
@@ -104,7 +107,7 @@ if aplicar_filtros and seleccionados:
     fig.update_traces(textposition='outside')
     st.plotly_chart(fig, use_container_width=True)
 
-    # Análisis financiero individual por tipo
+    # Gráficas detalladas
     st.subheader("📊 Análisis Financiero por Credit Score")
     for score in seleccionados:
         sub_df = df_filtrado[df_filtrado['credit_score'] == score]
