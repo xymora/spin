@@ -109,8 +109,8 @@ for score in seleccionados:
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        fig1 = px.violin(sub_df, y='avg_amount_withdrawals', box=True, points='all',
-                         title="Distribución de Retiros Promedio")
+        series_linea = sub_df.sort_values('index')[['index', 'avg_amount_withdrawals']]
+        fig1 = px.line(series_linea, x='index', y='avg_amount_withdrawals', title="Tendencia de Retiros Promedio")
         fig1.update_layout(height=250)
         st.plotly_chart(fig1, use_container_width=True)
 
@@ -121,7 +121,9 @@ for score in seleccionados:
         st.plotly_chart(fig2, use_container_width=True)
 
     with col3:
-        fig3 = px.histogram(sub_df, x='age', nbins=30, marginal='rug',
-                            title="Distribución de Edad")
+        bins = pd.cut(sub_df['age'], bins=[0, 20, 30, 40, 50, 60, 70, 80, 100])
+        edad_counts = bins.value_counts().sort_index().reset_index()
+        edad_counts.columns = ['rango_edad', 'count']
+        fig3 = px.pie(edad_counts, values='count', names='rango_edad', title="Distribución de Edad (Gráfica de Pastel)")
         fig3.update_layout(height=250)
         st.plotly_chart(fig3, use_container_width=True)
