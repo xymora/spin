@@ -2,8 +2,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-st.set_page_config(page_title="Panel de Clientes Bancarios", layout="wide")
-st.title("🏦 Panel de Clientes Bancarios")
+st.set_page_config(page_title="Dashboard de Clientes Bancarios", layout="wide")
+st.title("🏦 Dashboard de Clientes Bancarios")
 
 # =====================
 # Cargar datos
@@ -26,17 +26,17 @@ if df.empty:
     st.stop()
 
 # =====================
-# Credit Score Classification
+# Calificación crediticia
 # =====================
 def clasificar_credito(retiros, compras):
     if retiros > 50000 and compras == 0:
-        return '🔵 Crédito Premium'
+        return '🔵 Premium Credit'
     elif retiros > 20000 and compras <= 1:
-        return '🟢 Crédito Básico'
+        return '🟢 Basic Credit'
     elif retiros > 10000:
-        return '🟡 Riesgo Moderado'
+        return '🟡 Moderate Risk'
     else:
-        return '🔴 Riesgo Alto'
+        return '🔴 High Risk'
 
 df['credit_score'] = df.apply(
     lambda row: clasificar_credito(row['avg_amount_withdrawals'], row['avg_purchases_per_week']),
@@ -52,24 +52,24 @@ with st.sidebar:
 
     if aplicar_filtros:
         edad_min, edad_max = int(df['age'].min()), int(df['age'].max())
-        retiros_min, retiros_max = df['avg_amount_withdrawals'].min(), df['avg_amount_withdrawals'].max()
-        compras_min, compras_max = df['avg_purchases_per_week'].min(), df['avg_purchases_per_week'].max()
+        retiro_min, retiro_max = df['avg_amount_withdrawals'].min(), df['avg_amount_withdrawals'].max()
+        compra_min, compra_max = df['avg_purchases_per_week'].min(), df['avg_purchases_per_week'].max()
 
-        rango_edad = st.slider("Edad", edad_min, edad_max, (edad_min, edad_max))
-        rango_retiros = st.slider("Retiros Promedio", float(retiros_min), float(retiros_max), (float(retiros_min), float(retiros_max)))
-        rango_compras = st.slider("Compras por Semana", float(compras_min), float(compras_max), (float(compras_min), float(compras_max)))
+        edad = st.slider("Edad", edad_min, edad_max, (edad_min, edad_max))
+        retiros = st.slider("Retiros promedio", float(retiro_min), float(retiro_max), (float(retiro_min), float(retiro_max)))
+        compras = st.slider("Compras por semana", float(compra_min), float(compra_max), (float(compra_min), float(compra_max)))
 
         tipos_credito = df['credit_score'].unique().tolist()
-        tipos_seleccionados = st.multiselect("credit_score", sorted(tipos_credito), default=tipos_credito)
+        tipos_seleccionados = st.multiselect("Credit Score", sorted(tipos_credito), default=tipos_credito)
 
 # =====================
 # Aplicar filtros
 # =====================
 if aplicar_filtros:
     df_filtrado = df[
-        (df['age'].between(*rango_edad)) &
-        (df['avg_amount_withdrawals'].between(*rango_retiros)) &
-        (df['avg_purchases_per_week'].between(*rango_compras)) &
+        (df['age'].between(*edad)) &
+        (df['avg_amount_withdrawals'].between(*retiros)) &
+        (df['avg_purchases_per_week'].between(*compras)) &
         (df['credit_score'].isin(tipos_seleccionados))
     ]
 else:
@@ -91,11 +91,11 @@ primeras_columnas = [
 ]
 otras_columnas = sorted([col for col in df_filtrado.columns if col not in primeras_columnas])
 columnas_finales = primeras_columnas + otras_columnas
-df_vista = df_filtrado[columnas_finales]
+df_mostrar = df_filtrado[columnas_finales]
 
 # =====================
-# Mostrar resultados
+# Mostrar datos
 # =====================
 st.subheader("📋 Clientes Visualizados")
-st.dataframe(df_vista, use_container_width=True)
-st.markdown(f"🔎 Total mostrados: **{len(df_vista):,}** / 100,000")
+st.dataframe(df_mostrar, use_container_width=True)
+st.markdown(f"🔎 Total mostrados: **{len(df_mostrar):,}** / 100,000")
