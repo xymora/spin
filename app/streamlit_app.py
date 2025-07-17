@@ -21,7 +21,7 @@ def clasificar_riesgo(ingreso, pagos):
     elif ingreso > 10000:
         return '🟡 Riesgo Moderado'
     else:
-        return '🔴 Alto Riesgo'
+        return '🔴 Riesgo Alto'
 
 df = load_data()
 st.title("🏦 Dashboard de Clientes Bancarios")
@@ -29,9 +29,9 @@ st.title("🏦 Dashboard de Clientes Bancarios")
 if df.empty:
     st.warning("No hay datos disponibles.")
 else:
-    # Cálculo de riesgo
+    # Clasificación automática
     if 'ingreso_mensual' in df.columns and 'pagos_mensuales' in df.columns:
-        df['Riesgo Financiero'] = df.apply(
+        df['Clasificación Automática'] = df.apply(
             lambda row: clasificar_riesgo(row['ingreso_mensual'], row['pagos_mensuales']), axis=1
         )
 
@@ -43,6 +43,14 @@ else:
                 seleccion = st.multiselect(col, sorted(df[col].dropna().unique()))
                 if seleccion:
                     filtros[col] = seleccion
+
+        # Filtro por Clasificación Automática
+        clasificaciones = st.multiselect(
+            "Clasificación Automática",
+            ['🔵 Crédito Premium', '🟢 Crédito Básico', '🟡 Riesgo Moderado', '🔴 Riesgo Alto']
+        )
+        if clasificaciones:
+            filtros['Clasificación Automática'] = clasificaciones
 
     df_filtrado = df.copy()
     for col, valores in filtros.items():
