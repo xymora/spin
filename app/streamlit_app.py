@@ -56,13 +56,17 @@ with st.sidebar:
     retiros = st.slider("Promedio de Retiros", retiro_min, retiro_max, (retiro_min, retiro_max))
     compras = st.slider("Compras por semana", compra_min, compra_max, (compra_min, compra_max))
 
+    tipos_credito = df['Clasificación Automática'].unique().tolist()
+    tipos_seleccionados = st.multiselect("Tipo de crédito", sorted(tipos_credito), default=tipos_credito)
+
 # =====================
 # Aplicar filtros
 # =====================
 df_filtrado = df[
     (df['age'].between(*edad)) &
     (df['avg_amount_withdrawals'].between(*retiros)) &
-    (df['avg_purchases_per_week'].between(*compras))
+    (df['avg_purchases_per_week'].between(*compras)) &
+    (df['Clasificación Automática'].isin(tipos_seleccionados))
 ]
 
 # =====================
@@ -76,8 +80,5 @@ columnas_mostrar = [
 ]
 columnas_mostrar = [col for col in columnas_mostrar if col in df_filtrado.columns]
 
-# Asegurar que se muestren todos los registros en pantalla (sin truncar)
-pd.set_option('display.max_rows', None)
 st.dataframe(df_filtrado[columnas_mostrar], use_container_width=True)
-
 st.markdown(f"🔎 Total encontrados: **{len(df_filtrado):,}** / 100,000")
