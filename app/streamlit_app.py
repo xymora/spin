@@ -99,10 +99,17 @@ if 'search_active' not in st.session_state:
     st.session_state['search_active'] = False
 user_input = st.sidebar.text_input("👤 Usuario exacto", key='user_search')
 btn1, btn2 = st.sidebar.columns(2)
-with btn1:
-    if st.button("Buscar"): st.session_state['search_active'] = True
-with btn2:
-    if st.button("Borrar"): st.session_state['user_search']=''; st.session_state['search_active']=False
+
+# Botones de búsqueda con keys únicas
+def clear_search():
+    st.session_state['user_search'] = ''
+    st.session_state['search_active'] = False
+
+search_clicked = btn1.button("Buscar", key='search_btn')
+clear_clicked = btn2.button("Borrar", key='clear_btn', on_click=clear_search)
+
+if search_clicked:
+    st.session_state['search_active'] = True
 
 # ====================================
 # Filtrar DataFrame
