@@ -17,9 +17,16 @@ def load_data(url: str) -> pd.DataFrame:
     """
     Carga y formatea el DataFrame desde la URL.
     Convierte columnas clave a numérico y rellena NA con 0.
+    Detecta y convierte columnas de depósito si existen.
     """
     df = pd.read_csv(url)
+    # Convertir columnas de retiros y compras
     for col in ['avg_amount_withdrawals', 'avg_purchases_per_week']:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+    # Detectar y convertir columnas de depósito promedio
+    deposit_cols = [c for c in df.columns if 'deposit' in c.lower()]
+    for col in deposit_cols:
         df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
     return df
 
@@ -55,18 +62,31 @@ st.sidebar.header("🔍 Filtros opcionales")
 credit_order = ['🔵 Premium Credit', '🟢 Basic Credit', '🟡 Moderate Risk', '🔴 High Risk']
 available_scores = [c for c in credit_order if c in df['credit_score'].unique()]
 selected_scores = st.sidebar.multiselect("Credit Score", available_scores, default=available_scores)
-user_input = st.sidebar.text_input("👤 Ingresar usuario exacto")
-search_user = st.sidebar.button("Buscar usuario")
+# Input y botones con session_state
+user_input = st.sidebar.text_input("👤 Ingresar usuario exacto", key="user_input")
+search = st.sidebar.button("Buscar")
+clear = st.sidebar.button("Borrar")
+
+# Lógica de borrado de detalles
+if clear:
+    st.session_state.user_input = ""
+    # opcional: desactivar búsqueda previa
+    search = False
 
 # Filtrar DataFrame
 filtered_df = df[df['credit_score'].isin(selected_scores)].copy()
 
 # Mostrar tabla de clientes
+# Incluir columna de depósitos si existe
 table_cols = [
     'user', 'age', 'index', 'credit_score',
     'user_type', 'registration_channel', 'creation_flow',
     'creation_date', 'avg_amount_withdrawals'
 ]
+deposit_cols = [c for c in filtered_df.columns if 'deposit' in c.lower()]
+for dcol in deposit_cols:
+    if dcol not in table_cols:
+        table_cols.append(dcol)
 other_cols = sorted([col for col in filtered_df.columns if col not in table_cols])
 df_display = filtered_df[table_cols + other_cols]
 
@@ -148,19 +168,19 @@ fig_cluster = px.scatter_3d(
 st.plotly_chart(fig_cluster, use_container_width=True)
 
 # Visualización individual por usuario
-if search_user and user_input:
-    user_df = df[df['user'] == user_input]
+if search and st.session_state.user_input:
+    user_df = df[df['user'] == st.session_state.user_input]
     if user_df.empty:
         st.warning("Usuario no encontrado.")
     else:
-        st.markdown(f"## 📌 Detalles del usuario `{user_input}`")
+        st.markdown(f"## 📌 Detalles del usuario `{st.session_state.user_input}`")
         # Primera fila de métricas
         m1, m2, m3 = st.columns(3)
         m1.metric("Edad", int(user_df['age'].iloc[0]))
         m2.metric("Índice", int(user_df['index'].iloc[0]))
         m3.metric("Credit Score", user_df['credit_score'].iloc[0])
 
-        # Segunda fila de métricas (sin repetir credit_score)
+        # Segunda fila de métricas
         m4, m5, m6 = st.columns(3)
         m4.metric("Retiros promedio", f"${user_df['avg_amount_withdrawals'].iloc[0]:,.2f}")
         m5.metric("Compras x semana", round(user_df['avg_purchases_per_week'].iloc[0], 2))
