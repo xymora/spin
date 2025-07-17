@@ -75,9 +75,32 @@ else:
     df_filtrado = df.copy()
 
 # =====================
-# Mostrar resultados
+# Diccionario de nombres en español
+# =====================
+nombres_columnas_es = {
+    "user": "ID Cliente",
+    "age": "Edad",
+    "gender": "Género",
+    "marital_status": "Estado civil",
+    "education_level": "Nivel educativo",
+    "employment_status": "Ocupación",
+    "account_balance": "Saldo en cuenta",
+    "avg_amount_withdrawals": "Promedio de retiros",
+    "avg_purchases_per_week": "Compras por semana",
+    "is_homeowner": "Es propietario",
+    "has_credit_card": "Tiene tarjeta de crédito",
+    "num_products_owned": "Productos contratados",
+    "days_active_per_month": "Días activo por mes",
+    "device_type": "Tipo de dispositivo",
+    "region": "Región",
+    "Clasificación Automática": "Clasificación Automática"
+}
+
+# =====================
+# Mostrar resultados con encabezados en español
 # =====================
 st.subheader("📋 Clientes Visualizados")
 
-st.dataframe(df_filtrado, use_container_width=True)
+df_mostrar = df_filtrado.rename(columns=nombres_columnas_es)
+st.dataframe(df_mostrar, use_container_width=True)
 st.markdown(f"🔎 Total mostrados: **{len(df_filtrado):,}** / 100,000")
