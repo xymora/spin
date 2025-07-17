@@ -43,7 +43,7 @@ else:
     st.stop()
 
 # =====================
-# Filtros laterales (opcional)
+# Filtros laterales
 # =====================
 with st.sidebar:
     st.header("🔍 Filtros (opcional)")
@@ -78,7 +78,7 @@ else:
 # =====================
 # Mostrar resultados
 # =====================
-st.subheader("📋 Clientes")
+st.subheader("📋 Clientes Filtrados")
 
 columnas_mostrar = [
     'user', 'age', 'avg_amount_withdrawals', 
