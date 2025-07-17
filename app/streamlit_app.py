@@ -180,9 +180,64 @@ if st.session_state['search_active'] and st.session_state['user_search'] and len
     g4.plotly_chart(fig4, use_container_width=True)
     st.plotly_chart(fig5, use_container_width=True)
 
-# Botón exportar
-csv = df_filtered.to_csv(index=False).encode('utf-8')
-st.download_button("💾 Descargar CSV", data=csv, file_name='clientes_filtrados.csv')
+# Botón exportar y generación de reporte con gráficos
+import io
+import zipfile
+
+if st.session_state['search_active'] and st.session_state['user_search'] and len(df_filtered)==1:
+    # CSV del usuario
+    csv_bytes = df_filtered.to_csv(index=False).encode('utf-8')
+    # Generar gráficos de perfil de usuario nuevamente
+    user_row = df_filtered.iloc[0]
+    figs = []
+    # Histograma retiros
+    f1 = px.histogram(df, x='avg_amount_withdrawals', nbins=20)
+    f1.add_vline(x=user_row['avg_amount_withdrawals'], line_dash='dash', annotation_text='Tú')
+    figs.append(('retiros.png', f1))
+    # Histograma compras
+    f2 = px.histogram(df, x='avg_purchases_per_week', nbins=20)
+    f2.add_vline(x=user_row['avg_purchases_per_week'], line_dash='dash', annotation_text='Tú')
+    figs.append(('compras.png', f2))
+    # Radar
+    radar_df = pd.DataFrame({
+        'Feature': ['Retiros','Compras/Semana','Edad'],
+        'Value': [user_row['avg_amount_withdrawals'], user_row['avg_purchases_per_week'], user_row['age']]
+    })
+    f3 = px.line_polar(radar_df, r='Value', theta='Feature', line_close=True)
+    figs.append(('radar.png', f3))
+    # Comparativa vs mediana
+    medians = df[['avg_amount_withdrawals','avg_purchases_per_week','age']].median()
+    comp_df = pd.DataFrame({
+        'Metric':['Retiros','Compras/Semana','Edad'],
+        'Usuario':[user_row['avg_amount_withdrawals'],user_row['avg_purchases_per_week'],user_row['age']],
+        'Mediana':medians.values
+    })
+    f4 = px.bar(comp_df, x='Metric', y=['Usuario','Mediana'], barmode='group')
+    figs.append(('comparativa.png', f4))
+    # Pie global scores
+    score_counts = df['credit_score'].value_counts().reindex(overall_order).reset_index()
+    score_counts.columns = ['credit_score','count']
+    f5 = px.pie(score_counts, names='credit_score', values='count')
+    figs.append(('scores.png', f5))
+    # Crear zip en memoria
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w') as zf:
+        # Añadir CSV
+        zf.writestr('usuario.csv', csv_bytes)
+        # Añadir imágenes
+        for fname, fig in figs:
+            img_bytes = fig.to_image(format='png')
+            zf.writestr(fname, img_bytes)
+    zip_buffer.seek(0)
+    st.download_button(
+        label="📦 Descargar Reporte ZIP",
+        data=zip_buffer,
+        file_name=f"reporte_{st.session_state['user_search']}.zip",
+        mime="application/zip"
+    )
+else:
+    csv = df_filtered.to_csv(index=False).encode('utf-8')
+    st.download_button("💾 Descargar CSV", data=csv, file_name='clientes_filtrados.csv')("💾 Descargar CSV", data=csv, file_name='clientes_filtrados.csv')
 
 # ====================================
 # Gráficas
