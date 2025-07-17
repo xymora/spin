@@ -150,14 +150,14 @@ if buscar and usuario:
 
         col1.metric("Retiros promedio", f"${user_data['avg_amount_withdrawals'].values[0]:,.2f}")
         col2.metric("Compras x semana", user_data['avg_purchases_per_week'].values[0])
-        col3.metric("Historial crediticio", user_data['score'].values[0])
+        col3.metric("Historial crediticio", user_data['credit_score'].values[0])
 
         st.markdown("### 📈 Gráficas personales")
         fig_u1 = px.bar(user_data, x="user", y="age", title="Edad del usuario")
         fig_u2 = px.bar(user_data, x="user", y="index", title="Índice")
-        fig_u3 = px.bar(user_data, x="user", y="score", title="Historial crediticio")
-        fig_u4 = px.line(user_data, x="user", y="avg_amount_withdrawals", title="Retiros promedio")
-        fig_u5 = px.bar(user_data, x="user", y="avg_purchases_per_week", title="Compras por semana")
+        fig_u3 = px.bar(user_data, x="user", y="avg_amount_withdrawals", title="Retiros promedio")
+        fig_u4 = px.line(user_data, x="user", y="avg_purchases_per_week", title="Compras por semana")
+        fig_u5 = px.pie(user_data, names="credit_score", title="Tipo de Credit Score")
 
         st.plotly_chart(fig_u1, use_container_width=True)
         st.plotly_chart(fig_u2, use_container_width=True)
