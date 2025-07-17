@@ -110,17 +110,19 @@ if seleccionados:
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            sub_df_sorted = sub_df.sort_values('avg_amount_withdrawals').reset_index(drop=True)
-            sub_df_sorted['cliente'] = sub_df_sorted.index
+            # ✅ Gráfica de línea con marcadores (como la imagen que enviaste)
+            bins = np.histogram_bin_edges(sub_df['avg_amount_withdrawals'], bins=15)
+            counts, edges = np.histogram(sub_df['avg_amount_withdrawals'], bins=bins)
+            midpoints = 0.5 * (edges[1:] + edges[:-1])
+
             fig1 = px.line(
-                sub_df_sorted,
-                x='cliente',
-                y='avg_amount_withdrawals',
-                markers=True,
-                title="Retiros Promedio (Línea)"
+                x=midpoints,
+                y=counts,
+                title="Retiros Promedio (Distribución)",
+                markers=True
             )
-            fig1.update_traces(line=dict(color='brown'), marker=dict(color='green', size=6))
-            fig1.update_layout(height=250, xaxis_title='Clientes ordenados', yaxis_title='Retiros')
+            fig1.update_traces(line=dict(color='brown', width=3), marker=dict(color='green', size=8))
+            fig1.update_layout(xaxis_title="Promedio de Retiros", yaxis_title="Frecuencia", height=250)
             st.plotly_chart(fig1, use_container_width=True)
 
         with col2:
