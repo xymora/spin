@@ -70,22 +70,17 @@ if 'search_active' not in st.session_state:
     st.session_state['search_active'] = False
 
 # Input de usuario exacto
-given_user = st.sidebar.text_input(
+st.sidebar.text_input(
     "👤 Usuario exacto:",
-    value=st.session_state['user_search'],
     key='user_search'
 )
-
-# Callbacks y botones
-def clear_search():
+# Botones Buscar y Borrar alineados
+col1, col2 = st.sidebar.columns(2)
+if col1.button("Buscar"):
+    st.session_state['search_active'] = True
+if col2.button("Borrar"):
     st.session_state['user_search'] = ''
     st.session_state['search_active'] = False
-
-search_clicked = st.sidebar.button("Buscar")
-clear_clicked = st.sidebar.button("Borrar", on_click=clear_search)
-
-if search_clicked:
-    st.session_state['search_active'] = True
 
 # Filtrar DataFrame por credit score
 df_filtered = df[df['credit_score'].isin(selected_scores)].copy()
