@@ -11,12 +11,12 @@ def load_data():
         st.error(f"No se pudo cargar el archivo desde la URL: {e}")
         return pd.DataFrame()
 
-def clasificar_riesgo(ingreso, pagos):
-    if ingreso > 50000 and pagos == 0:
+def clasificar_riesgo(retiros, compras):
+    if retiros > 50000 and compras == 0:
         return '🔵 Crédito Premium'
-    elif ingreso > 20000 and pagos <= 1:
+    elif retiros > 20000 and compras <= 1:
         return '🟢 Crédito Básico'
-    elif ingreso > 10000:
+    elif retiros > 10000:
         return '🟡 Riesgo Moderado'
     else:
         return '🔴 Riesgo Alto'
@@ -29,12 +29,10 @@ if df.empty:
 else:
     st.write("🧾 Columnas del DataFrame:", df.columns.tolist())
 
-    ingreso_col = 'ingreso_mensual' if 'ingreso_mensual' in df.columns else None
-    pagos_col = 'pagos_mensuales' if 'pagos_mensuales' in df.columns else None
-
-    if ingreso_col and pagos_col:
+    if 'avg_amount_withdrawals' in df.columns and 'avg_purchase_per_week' in df.columns:
         df['Clasificación Automática'] = df.apply(
-            lambda row: clasificar_riesgo(row[ingreso_col], row[pagos_col]), axis=1
+            lambda row: clasificar_riesgo(row['avg_amount_withdrawals'], row['avg_purchase_per_week']),
+            axis=1
         )
 
     with st.sidebar:
