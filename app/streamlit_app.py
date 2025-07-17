@@ -39,7 +39,7 @@ def clasificar_riesgo(retiros, compras):
     else:
         return '🔴 Riesgo Alto'
 
-df['Clasificación Automática'] = df.apply(
+df['credit_score'] = df.apply(
     lambda row: clasificar_riesgo(row['avg_amount_withdrawals'], row['avg_purchases_per_week']),
     axis=1
 )
@@ -61,7 +61,7 @@ with st.sidebar:
         retiros = st.slider("Promedio de Retiros", float(retiro_min), float(retiro_max), (float(retiro_min), float(retiro_max)))
         compras = st.slider("Compras por semana", float(compra_min), float(compra_max), (float(compra_min), float(compra_max)))
 
-        tipos_credito = df['Clasificación Automática'].unique().tolist()
+        tipos_credito = df['credit_score'].unique().tolist()
         tipos_seleccionados = st.multiselect("Tipo de crédito", sorted(tipos_credito), default=tipos_credito)
 
 # =====================
@@ -72,14 +72,24 @@ if aplicar_filtros:
         (df['age'].between(*edad)) &
         (df['avg_amount_withdrawals'].between(*retiros)) &
         (df['avg_purchases_per_week'].between(*compras)) &
-        (df['Clasificación Automática'].isin(tipos_seleccionados))
+        (df['credit_score'].isin(tipos_seleccionados))
     ]
 else:
     df_filtrado = df.copy()
 
 # =====================
+# Reordenar columnas
+# =====================
+columnas_inicio = ['user', 'age', 'avg_amount_withdrawals', 'index', 'credit_score']
+columnas_final = ['registration_channel', 'creation_date', 'creation_flow']
+columnas_intermedias = sorted([col for col in df_filtrado.columns if col not in columnas_inicio + columnas_final])
+
+orden_final = columnas_inicio + columnas_intermedias + columnas_final
+df_final = df_filtrado[orden_final]
+
+# =====================
 # Mostrar resultados
 # =====================
 st.subheader("📋 Clientes Visualizados")
-st.dataframe(df_filtrado, use_container_width=True)
-st.markdown(f"🔎 Total mostrados: **{len(df_filtrado):,}** / 100,000")
+st.dataframe(df_final, use_container_width=True)
+st.markdown(f"🔎 Total mostrados: **{len(df_final):,}** / 100,000")
