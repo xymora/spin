@@ -157,17 +157,45 @@ if search_active and st.session_state.user_input:
         m1.metric("Edad", int(user_df['age'].iat[0]))
         m2.metric("Índice", int(user_df['index'].iat[0]))
         m3.metric("Credit Score", user_df['credit_score'].iat[0])
-        m4, m5, m6 = st.columns(3)
-        m4.metric("Retiros promedio", f"${user_df['avg_amount_withdrawals'].iat[0]:,.2f}")
-        m5.metric("Compras x semana", round(user_df['avg_purchases_per_week'].iat[0], 2))
-        m6.metric("Tipo usuario", user_df['user_type'].iat[0])
-        st.markdown("### 📈 Gráficas personales")
-        r1, r2 = st.columns(2)
-        fig_list = [
-            px.bar(user_df, x='user', y='avg_amount_withdrawals', title="Retiros"),
-            px.pie(user_df, names='credit_score', title="Score"),
-            px.scatter(user_df, x='age', y='avg_purchases_per_week', title="Edad vs Compras"),
-            px.line(user_df, x='user', y='index', title="Índice")
-        ]
-        for col, fig in zip([r1, r1, r2, r2], fig_list):
-            col.plotly_chart(fig, use_container_width=True)
+        # Variables para gráficos
+        user_withdrawals = user_df['avg_amount_withdrawals'].iat[0]
+        user_purchases_count = user_df['avg_purchases_per_week'].iat[0]
+        user_purchases_amount = user_df['avg_amount_purchases'].iat[0]
+        user_age = user_df['age'].iat[0]
+
+        st.markdown("### 📈 Perfil Gráfico")
+        r1c1, r1c2 = st.columns(2)
+        r2c1, r2c2 = st.columns(2)
+
+        # Histograma de retiros con posición del usuario
+        fig1 = px.histogram(df, x='avg_amount_withdrawals', nbins=20,
+                            title="Histograma Retiros (tu posición)")
+        fig1.add_vline(x=user_withdrawals, line_dash="dash",
+                       annotation_text="Tú",
+                       annotation_position="top right")
+        r1c1.plotly_chart(fig1, use_container_width=True)
+
+        # Histograma de compras por semana con posición del usuario
+        fig2 = px.histogram(df, x='avg_purchases_per_week', nbins=20,
+                            title="Histograma Compras/Semana (tu posición)")
+        fig2.add_vline(x=user_purchases_count, line_dash="dash",
+                       annotation_text="Tú",
+                       annotation_position="top right")
+        r1c2.plotly_chart(fig2, use_container_width=True)
+
+        # Comparativa Retiro vs Compra (monto)
+        comp_df = pd.DataFrame({
+            'Tipo': ['Retiros', 'Compras'],
+            'Promedio': [user_withdrawals, user_purchases_amount]
+        })
+        fig3 = px.bar(comp_df, x='Tipo', y='Promedio',
+                      title="Comparativa Retiro vs Compra")
+        r2c1.plotly_chart(fig3, use_container_width=True)
+
+        # Distribución de edad con marcador del usuario
+        fig4 = px.histogram(df, x='age', nbins=20,
+                            title="Distribución de Edad (tu posición)")
+        fig4.add_vline(x=user_age, line_dash="dash",
+                       annotation_text="Tú",
+                       annotation_position="top right")
+        r2c2.plotly_chart(fig4, use_container_width=True)
