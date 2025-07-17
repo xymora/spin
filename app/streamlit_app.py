@@ -110,7 +110,7 @@ if seleccionados:
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            # ✅ Gráfica de línea con marcadores (como la imagen que enviaste)
+            # Línea con marcadores
             bins = np.histogram_bin_edges(sub_df['avg_amount_withdrawals'], bins=15)
             counts, edges = np.histogram(sub_df['avg_amount_withdrawals'], bins=bins)
             midpoints = 0.5 * (edges[1:] + edges[:-1])
@@ -126,8 +126,12 @@ if seleccionados:
             st.plotly_chart(fig1, use_container_width=True)
 
         with col2:
-            fig2 = px.histogram(sub_df, x='avg_purchases_per_week', nbins=10, title="Compras por Semana")
-            fig2.update_layout(height=250)
+            # Barras separadas para compras por semana
+            compras_df = sub_df['avg_purchases_per_week'].round(0).astype(int)
+            compras_count = compras_df.value_counts().sort_index().reset_index()
+            compras_count.columns = ['compras', 'frecuencia']
+            fig2 = px.bar(compras_count, x='compras', y='frecuencia', title="Compras por Semana (Barras Separadas)")
+            fig2.update_layout(xaxis_title="Compras por semana", yaxis_title="Frecuencia", height=250)
             st.plotly_chart(fig2, use_container_width=True)
 
         with col3:
