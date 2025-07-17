@@ -136,6 +136,22 @@ else:
 
 # Si se filtró un solo usuario, mostrar 5 gráficas de perfil de crédito
 if st.session_state['search_active'] and st.session_state['user_search'] and len(df_filtered)==1:
+    user_row = df_filtered.iloc[0]
+    # Información textual del usuario
+    st.markdown(
+        f"**Usuario**: {st.session_state['user_search']}  
+"
+        f"**Edad**: {int(user_row['age'])} años  
+"
+        f"**Tipo de usuario**: {user_row['user_type']}  
+"
+        f"**Credit Score**: {user_row['credit_score']}  
+"
+        f"**Retiros promedio**: ${user_row['avg_amount_withdrawals']:,.2f}  
+"
+        f"**Compras/Semana**: {user_row['avg_purchases_per_week']:.2f}"
+    )
+    st.subheader(f"📈 Gráficas de crédito para `{st.session_state['user_search']}`")
     user_df = df_filtered.iloc[0]
     st.subheader(f"📈 Gráficas de crédito para `{st.session_state['user_search']}`")
     # Gráfica 1: Posición en distrib. de retiros
