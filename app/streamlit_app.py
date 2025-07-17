@@ -12,8 +12,18 @@ from sklearn.metrics import (
     classification_report, confusion_matrix, roc_curve, auc,
     silhouette_score, precision_recall_curve
 )
-import seaborn as sns
-import matplotlib.pyplot as plt
+# Intentar importar seaborn para estadísticas visuales
+try:
+    import seaborn as sns
+except ImportError:
+    sns = None
+    logging.warning('Seaborn no está instalado: algunas gráficas avanzadas no estarán disponibles')
+# Intentar importar matplotlib para gráficos si seaborn falla
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    plt = None
+    logging.warning('Matplotlib no está instalado: algunas funciones de visualización no estarán disponibles')
 import logging
 import time
 
