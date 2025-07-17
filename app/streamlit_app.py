@@ -112,46 +112,46 @@ if seleccionados:
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            # Línea con marcadores
-            bins = np.histogram_bin_edges(sub_df['avg_amount_withdrawals'], bins=15)
-            counts, edges = np.histogram(sub_df['avg_amount_withdrawals'], bins=bins)
-            midpoints = 0.5 * (edges[1:] + edges[:-1])
-
-            fig1 = px.line(
-                x=midpoints,
-                y=counts,
-                title="Retiros Promedio (Distribución)",
-                markers=True
+            fig1 = go.Figure()
+            fig1.add_trace(go.Scatter(
+                y=np.histogram(sub_df['avg_amount_withdrawals'], bins=30)[0],
+                mode='lines+markers',
+                line=dict(color='blue')
+            ))
+            fig1.update_layout(
+                title="Retiros Promedio",
+                height=250,
+                xaxis_title='Bins',
+                yaxis_title='Frecuencia'
             )
-            fig1.update_traces(line=dict(color='brown', width=3), marker=dict(color='green', size=8))
-            fig1.update_layout(xaxis_title="Promedio de Retiros", yaxis_title="Frecuencia", height=250)
             st.plotly_chart(fig1, use_container_width=True)
 
         with col2:
-            # Barras separadas para compras por semana
-            compras_df = sub_df['avg_purchases_per_week'].round(0).astype(int)
-            compras_count = compras_df.value_counts().sort_index().reset_index()
-            compras_count.columns = ['compras', 'frecuencia']
-            fig2 = px.bar(compras_count, x='compras', y='frecuencia', title="Compras por Semana (Barras Separadas)")
-            fig2.update_layout(xaxis_title="Compras por semana", yaxis_title="Frecuencia", height=250)
+            # Agrupar las compras por semana en rangos para gráfico de pastel
+            bins = [0, 1, 3, 5, 10, 50]
+            labels = ['0-1', '1-3', '3-5', '5-10', '10+']
+            compras = pd.cut(sub_df['avg_purchases_per_week'], bins=bins + [np.inf], labels=labels, right=False)
+            compras_freq = compras.value_counts().sort_index().reset_index()
+            compras_freq.columns = ['rango', 'count']
+            fig2 = px.pie(
+                compras_freq,
+                names='rango',
+                values='count',
+                title="Compras por Semana"
+            )
             st.plotly_chart(fig2, use_container_width=True)
 
         with col3:
-            # KDE - Distribución Gaussiana de Edad
-            x_age = sub_df['age'].dropna()
-            if len(x_age) > 1:
-                kde = gaussian_kde(x_age)
-                x_vals = np.linspace(x_age.min(), x_age.max(), 200)
-                y_vals = kde(x_vals)
-                fig3 = go.Figure()
-                fig3.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines', fill='tozeroy',
-                                          line=dict(color='royalblue'), name='Densidad'))
-                fig3.update_layout(
-                    title="Edad (Distribución Gaussiana)",
-                    xaxis_title="Edad",
-                    yaxis_title="Densidad estimada",
-                    height=250
-                )
-                st.plotly_chart(fig3, use_container_width=True)
-            else:
-                st.warning("⚠️ No hay suficientes datos de edad para calcular la curva.")
+            edades = sub_df['age'].dropna()
+            kde = gaussian_kde(edades)
+            x_vals = np.linspace(edades.min(), edades.max(), 200)
+            y_vals = kde(x_vals)
+            fig3 = go.Figure()
+            fig3.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines', fill='tozeroy'))
+            fig3.update_layout(
+                title="Distribución de Edad",
+                height=250,
+                xaxis_title='Edad',
+                yaxis_title='Densidad'
+            )
+            st.plotly_chart(fig3, use_container_width=True)
