@@ -80,16 +80,23 @@ else:
 # =====================
 # Reordenar columnas
 # =====================
-columnas_inicio = ['user', 'age', 'avg_amount_withdrawals', 'index', 'credit_score']
-columnas_final = ['registration_channel', 'creation_date', 'creation_flow']
-columnas_intermedias = sorted([col for col in df_filtrado.columns if col not in columnas_inicio + columnas_final])
+cols_inicio = [
+    'user',
+    'age',
+    'avg_amount_withdrawals',
+    'index',
+    'user_type',
+    'registration_channel',
+    'creation_date',
+    'creation_flow'
+]
 
-orden_final = columnas_inicio + columnas_intermedias + columnas_final
-df_final = df_filtrado[orden_final]
+cols_resto = sorted([col for col in df_filtrado.columns if col not in cols_inicio])
+df_mostrar = df_filtrado[cols_inicio + cols_resto]
 
 # =====================
 # Mostrar resultados
 # =====================
 st.subheader("📋 Clientes Visualizados")
-st.dataframe(df_final, use_container_width=True)
-st.markdown(f"🔎 Total mostrados: **{len(df_final):,}** / 100,000")
+st.dataframe(df_mostrar, use_container_width=True)
+st.markdown(f"🔎 Total mostrados: **{len(df_mostrar):,}** / 100,000")
