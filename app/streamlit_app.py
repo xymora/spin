@@ -85,8 +85,8 @@ first_cols = [
     'credit_score',
     'user_type',
     'registration_channel',
-    'creation_date',
-    'creation_flow',
+    'creation_flow',      # ← now comes before
+    'creation_date',      # ← now comes after
     'avg_amount_withdrawals'
 ]
 other_cols = sorted([col for col in df_filtered.columns if col not in first_cols])
