@@ -61,8 +61,18 @@ with st.sidebar:
     tipos_credito = [c for c in orden_credit if c in df['credit_score'].unique()]
     seleccionados = st.multiselect("Credit Score", tipos_credito, default=tipos_credito)
     st.divider()
-    usuario = st.text_input("👤 Ingresar usuario exacto")
-    buscar = st.button("Buscar usuario")
+    if "usuario_input" not in st.session_state:
+        st.session_state.usuario_input = ""
+    usuario_input = st.text_input("👤 Ingresar usuario exacto", value=st.session_state.usuario_input, key="usuario_box")
+    col_buscar, col_borrar = st.columns([1, 1])
+    with col_buscar:
+        buscar = st.button("Buscar")
+    with col_borrar:
+        borrar = st.button("Borrar")
+
+if borrar:
+    st.session_state.usuario_input = ""
+    st.experimental_rerun()
 
 df_filtrado = df[df['credit_score'].isin(seleccionados)]
 
@@ -104,8 +114,8 @@ for score in seleccionados:
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        fig1 = px.line(sub_df.sort_values('avg_amount_withdrawals'), y='avg_amount_withdrawals')
-        fig1.update_layout(title="Retiros promedio", height=250)
+        fig1 = px.histogram(sub_df, x='avg_amount_withdrawals', nbins=20)
+        fig1.update_layout(title="Distribución de retiros promedio", height=250)
         st.plotly_chart(fig1, use_container_width=True)
 
     with col2:
@@ -121,7 +131,7 @@ for score in seleccionados:
             labels={'x': 'Compras por semana', 'y': 'Cantidad'},
             text=compras_counts.values
         )
-        fig2.update_layout(title="Compras promedio por semana", height=250)
+        fig2.update_layout(title="Frecuencia de compras semanales", height=250)
         fig2.update_traces(textposition='outside')
         st.plotly_chart(fig2, use_container_width=True)
 
@@ -130,7 +140,7 @@ for score in seleccionados:
         x_vals = np.linspace(sub_df['age'].min(), sub_df['age'].max(), 100)
         y_vals = kde(x_vals)
         fig3 = px.area(x=x_vals, y=y_vals)
-        fig3.update_layout(title="Distribución de edad", height=250)
+        fig3.update_layout(title="Edad (Distribución Gaussiana)", height=250)
         st.plotly_chart(fig3, use_container_width=True)
 
 # =====================
@@ -159,27 +169,25 @@ st.plotly_chart(fig_cluster, use_container_width=True)
 # =====================
 # Visualización individual por usuario
 # =====================
-if buscar and usuario:
-    user_data = df[df['user'] == usuario]
+if buscar and st.session_state.usuario_input:
+    user_data = df[df['user'] == st.session_state.usuario_input]
     if user_data.empty:
         st.warning("Usuario no encontrado.")
     else:
-        st.markdown(f"## 📌 Detalles del usuario `{usuario}`")
+        st.markdown(f"## 📌 Detalles del usuario `{st.session_state.usuario_input}`")
         col1, col2, col3 = st.columns(3)
         col1.metric("Edad", int(user_data['age'].values[0]))
         col2.metric("Índice", int(user_data['index'].values[0]))
         col3.metric("Credit Score", user_data['credit_score'].values[0])
-
         col1.metric("Retiros promedio", f"${user_data['avg_amount_withdrawals'].values[0]:,.2f}")
         col2.metric("Compras x semana", user_data['avg_purchases_per_week'].values[0])
-        col3.metric("Historial crediticio", user_data['credit_score'].values[0])
 
         st.markdown("### 📈 Gráficas personales")
         row1_col1, row1_col2 = st.columns(2)
         row2_col1, row2_col2 = st.columns(2)
 
         fig_u1 = px.bar(user_data, x="user", y="avg_amount_withdrawals", title="Retiros promedio")
-        fig_u2 = px.pie(user_data, names="credit_score", title="Tipo de Score")
+        fig_u2 = px.bar(user_data, x="user", y="avg_purchases_per_week", title="Compras por semana")
         fig_u3 = px.scatter(user_data, x="age", y="avg_purchases_per_week", title="Edad vs Compras")
         fig_u4 = px.line(user_data, x="user", y="index", title="Índice del cliente")
 
