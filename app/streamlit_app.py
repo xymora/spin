@@ -1,13 +1,8 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
+import requests
 
-st.set_page_config(page_title="Dashboard de Clientes Bancarios", layout="wide")
-st.title("🏦 Dashboard de Clientes Bancarios")
-
-# =====================
-# Cargar datos desde URL
-# =====================
+# URL del CSV
 DATA_URL = "https://covenantaegis.com/segmentation_data_recruitment.csv"
 
 @st.cache_data
@@ -15,70 +10,44 @@ def load_data():
     try:
         return pd.read_csv(DATA_URL)
     except Exception as e:
-        st.error(f"No se pudo cargar la base de datos: {e}")
+        st.error(f"No se pudo cargar el archivo desde la URL: {e}")
         return pd.DataFrame()
 
-df = load_data()
-
-# =====================
-# Clasificación automática
-# =====================
-def clasificar_riesgo(retiros, compras):
-    if retiros > 50000 and compras == 0:
+def clasificar_riesgo(ingreso, pagos):
+    if ingreso > 50000 and pagos == 0:
         return '🔵 Crédito Premium'
-    elif retiros > 20000 and compras <= 1:
+    elif ingreso > 20000 and pagos <= 1:
         return '🟢 Crédito Básico'
-    elif retiros > 10000:
+    elif ingreso > 10000:
         return '🟡 Riesgo Moderado'
     else:
-        return '🔴 Riesgo Alto'
+        return '🔴 Alto Riesgo'
 
-if not df.empty and {'avg_amount_withdrawals', 'avg_purchases_per_week'}.issubset(df.columns):
-    df['Clasificación Automática'] = df.apply(
-        lambda row: clasificar_riesgo(row['avg_amount_withdrawals'], row['avg_purchases_per_week']),
-        axis=1
-    )
+df = load_data()
+st.title("🏦 Dashboard de Clientes Bancarios")
+
+if df.empty:
+    st.warning("No hay datos disponibles.")
 else:
-    st.error("No se encontraron las columnas necesarias.")
-    st.stop()
+    # Cálculo de riesgo
+    if 'ingreso_mensual' in df.columns and 'pagos_mensuales' in df.columns:
+        df['Riesgo Financiero'] = df.apply(
+            lambda row: clasificar_riesgo(row['ingreso_mensual'], row['pagos_mensuales']), axis=1
+        )
 
-# =====================
-# Filtros laterales
-# =====================
-with st.sidebar:
-    st.header("🔍 Filtros")
-    
-    edad_min, edad_max = int(df['age'].min()), int(df['age'].max())
-    retiro_min, retiro_max = float(df['avg_amount_withdrawals'].min()), float(df['avg_amount_withdrawals'].max())
-    compra_min, compra_max = float(df['avg_purchases_per_week'].min()), float(df['avg_purchases_per_week'].max())
+    with st.sidebar:
+        st.header("🔍 Filtros")
+        filtros = {}
+        for col in df.columns:
+            if df[col].dtype == 'object' and df[col].nunique() < 50:
+                seleccion = st.multiselect(col, sorted(df[col].dropna().unique()))
+                if seleccion:
+                    filtros[col] = seleccion
 
-    edad = st.slider("Edad", edad_min, edad_max, (edad_min, edad_max))
-    retiros = st.slider("Promedio de Retiros", retiro_min, retiro_max, (retiro_min, retiro_max))
-    compras = st.slider("Compras por semana", compra_min, compra_max, (compra_min, compra_max))
+    df_filtrado = df.copy()
+    for col, valores in filtros.items():
+        df_filtrado = df_filtrado[df_filtrado[col].isin(valores)]
 
-    tipos_credito = df['Clasificación Automática'].unique().tolist()
-    tipos_seleccionados = st.multiselect("Tipo de crédito", sorted(tipos_credito), default=tipos_credito)
-
-# =====================
-# Aplicar filtros
-# =====================
-df_filtrado = df[
-    (df['age'].between(*edad)) &
-    (df['avg_amount_withdrawals'].between(*retiros)) &
-    (df['avg_purchases_per_week'].between(*compras)) &
-    (df['Clasificación Automática'].isin(tipos_seleccionados))
-]
-
-# =====================
-# Mostrar resultados
-# =====================
-st.subheader("📋 Clientes Filtrados")
-
-columnas_mostrar = [
-    'user', 'age', 'avg_amount_withdrawals', 
-    'avg_purchases_per_week', 'Clasificación Automática'
-]
-columnas_mostrar = [col for col in columnas_mostrar if col in df_filtrado.columns]
-
-st.dataframe(df_filtrado[columnas_mostrar], use_container_width=True)
-st.markdown(f"🔎 Total encontrados: **{len(df_filtrado):,}** / 100,000")
+    st.subheader("📋 Clientes Filtrados")
+    st.dataframe(df_filtrado)
+    st.markdown(f"🔎 Total encontrados: **{len(df_filtrado)}**")
