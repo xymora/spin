@@ -165,17 +165,36 @@ with clr_btn:
         clear_search()
 
 # Aplicar filtros basados en Credit Score solamente
-mask = (
-    df['credit_score'].isin(selected_scores) &
-    df['age'].between(age_min, age_max) &
-    df['activity_score'].between(score_min, score_max)
-)
+mask = df['credit_score'].isin(selected_scores)
 df_filtered = df[mask].reset_index(drop=True)
-st.markdown(f"Filtrados: **{len(df_filtered):,}** de {total_clients:,} clientes")
+# Si hay búsqueda de usuario activa, filtrar únicamente ese usuario
+given_user = st.session_state.get('user_search', '')
+if st.session_state.get('search_active', False) and given_user:
+    df_filtered = df_filtered[df_filtered['user'] == given_user]
+
+st.markdown(f'Filtrados: **{len(df_filtered):,}** de {total_clients:,} clientes')(f"Filtrados: **{len(df_filtered):,}** de {total_clients:,} clientes")
 
 # --------------------------------------
 # 7. Vista de Datos
 # --------------------------------------
+st.subheader("📋 Clientes mostrados")
+# Restaurar tabla de clientes
+if not df_filtered.empty:
+    table_cols = ['user', 'age', 'index', 'credit_score', 'user_type',
+                  'registration_channel', 'creation_flow', 'creation_date', 'avg_amount_withdrawals']
+    deposit_cols = [c for c in df_filtered.columns if 'deposit' in c.lower()]
+    for d in deposit_cols:
+        if d not in table_cols:
+            table_cols.append(d)
+    other_cols = sorted([c for c in df_filtered.columns if c not in table_cols])
+    df_display = df_filtered[table_cols + other_cols]
+    st.dataframe(df_display, use_container_width=True)
+    st.markdown(f"🔎 Total mostrados: **{len(df_display):,}** / {total_clients:,}")
+else:
+    st.warning("No hay clientes para mostrar con los filtros actuales.")
+
+# --------------------------------------
+# 8. Visualizaciones Avanzadas
 st.subheader("📋 Vista de Tabla Filtrada")
 styled_df = df_filtered.style.format({
     'avg_amount_withdrawals':'${:,.0f}',
