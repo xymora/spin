@@ -6,7 +6,7 @@ st.set_page_config(page_title="Bank Clients Dashboard", layout="wide")
 st.title("🏦 Bank Clients Dashboard")
 
 # =====================
-# Load data from URL
+# Load data
 # =====================
 DATA_URL = "https://covenantaegis.com/segmentation_data_recruitment.csv"
 
@@ -18,7 +18,7 @@ def load_data():
         df['avg_purchases_per_week'] = pd.to_numeric(df['avg_purchases_per_week'], errors='coerce').fillna(0)
         return df
     except Exception as e:
-        st.error(f"Failed to load the dataset: {e}")
+        st.error(f"Failed to load data: {e}")
         return pd.DataFrame()
 
 df = load_data()
@@ -26,14 +26,14 @@ if df.empty:
     st.stop()
 
 # =====================
-# Automatic credit score classification
+# Credit Score Classification
 # =====================
-def classify_credit(r_withdrawals, p_week):
-    if r_withdrawals > 50000 and p_week == 0:
+def classify_credit(withdrawals, purchases):
+    if withdrawals > 50000 and purchases == 0:
         return '🔵 Premium Credit'
-    elif r_withdrawals > 20000 and p_week <= 1:
+    elif withdrawals > 20000 and purchases <= 1:
         return '🟢 Basic Credit'
-    elif r_withdrawals > 10000:
+    elif withdrawals > 10000:
         return '🟡 Moderate Risk'
     else:
         return '🔴 High Risk'
@@ -76,27 +76,25 @@ else:
     df_filtered = df.copy()
 
 # =====================
-# Column reordering
+# Reorder columns
 # =====================
-primary_cols = [
+first_cols = [
     'user',
     'age',
-    'avg_amount_withdrawals',
     'index',
     'credit_score',
     'user_type',
     'registration_channel',
     'creation_date',
-    'creation_flow'
+    'creation_flow',
+    'avg_amount_withdrawals'
 ]
-
-# Add all other columns in alphabetical order
-other_cols = sorted([col for col in df_filtered.columns if col not in primary_cols])
-ordered_cols = primary_cols + other_cols
-df_display = df_filtered[ordered_cols]
+other_cols = sorted([col for col in df_filtered.columns if col not in first_cols])
+final_cols = first_cols + other_cols
+df_display = df_filtered[final_cols]
 
 # =====================
-# Show table
+# Show data
 # =====================
 st.subheader("📋 Displayed Clients")
 st.dataframe(df_display, use_container_width=True)
