@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import requests
 
 st.set_page_config(page_title="Dashboard de Clientes Bancarios", layout="wide")
 st.title("🏦 Dashboard de Clientes Bancarios")
@@ -22,7 +21,7 @@ def load_data():
 df = load_data()
 
 # =====================
-# Clasificación de riesgo
+# Clasificación automática
 # =====================
 def clasificar_riesgo(retiros, compras):
     if retiros > 50000 and compras == 0:
@@ -34,18 +33,17 @@ def clasificar_riesgo(retiros, compras):
     else:
         return '🔴 Riesgo Alto'
 
-# Validar columnas requeridas
 if not df.empty and {'avg_amount_withdrawals', 'avg_purchases_per_week'}.issubset(df.columns):
     df['Clasificación Automática'] = df.apply(
         lambda row: clasificar_riesgo(row['avg_amount_withdrawals'], row['avg_purchases_per_week']),
         axis=1
     )
 else:
-    st.error("No se encontraron las columnas necesarias para clasificar el riesgo.")
+    st.error("No se encontraron las columnas necesarias.")
     st.stop()
 
 # =====================
-# Filtros en barra lateral
+# Filtros laterales
 # =====================
 with st.sidebar:
     st.header("🔍 Filtros")
@@ -55,8 +53,8 @@ with st.sidebar:
     compra_min, compra_max = float(df['avg_purchases_per_week'].min()), float(df['avg_purchases_per_week'].max())
 
     edad = st.slider("Edad", edad_min, edad_max, (edad_min, edad_max))
-    retiros = st.slider("Monto promedio de retiros", retiro_min, retiro_max, (retiro_min, retiro_max))
-    compras = st.slider("Compras promedio por semana", compra_min, compra_max, (compra_min, compra_max))
+    retiros = st.slider("Promedio de Retiros", retiro_min, retiro_max, (retiro_min, retiro_max))
+    compras = st.slider("Compras por semana", compra_min, compra_max, (compra_min, compra_max))
 
 # =====================
 # Aplicar filtros
@@ -71,7 +69,15 @@ df_filtrado = df[
 # Mostrar resultados
 # =====================
 st.subheader("📋 Clientes Filtrados")
-columnas_mostrar = ['user', 'age', 'avg_amount_withdrawals', 'avg_purchases_per_week', 'Clasificación Automática']
+
+columnas_mostrar = [
+    'user', 'age', 'avg_amount_withdrawals', 
+    'avg_purchases_per_week', 'Clasificación Automática'
+]
 columnas_mostrar = [col for col in columnas_mostrar if col in df_filtrado.columns]
-st.dataframe(df_filtrado[columnas_mostrar])
-st.markdown(f"🔎 Total encontrados: **{len(df_filtrado):,}**")
+
+# Asegurar que se muestren todos los registros en pantalla (sin truncar)
+pd.set_option('display.max_rows', None)
+st.dataframe(df_filtrado[columnas_mostrar], use_container_width=True)
+
+st.markdown(f"🔎 Total encontrados: **{len(df_filtrado):,}** / 100,000")
