@@ -151,9 +151,9 @@ st.download_button("💾 Descargar CSV", data=csv, file_name='clientes_filtrados
 if st.session_state['search_active'] and st.session_state['user_search'] and len(df_filtered) == 1:
     user_df = df_filtered.iloc[0]
     st.subheader(
-    f"📈 Gráficas de crédito para `{st.session_state['user_search']}` "
-    f"(Edad: {int(user_df['age'])} años | Index: {user_df['index']} | Score: {user_df['credit_score']})"
-)
+        f"📈 Gráficas de crédito para `{st.session_state['user_search']}` "
+        f"(Edad: {int(user_df['age'])} años | Index: {user_df['index']} | Score: {user_df['credit_score']})"
+    )
 
     # Calcular percentiles del usuario
     pct_retiros = (df['avg_amount_withdrawals'] <= user_df['avg_amount_withdrawals']).mean() * 100
@@ -172,7 +172,7 @@ if st.session_state['search_active'] and st.session_state['user_search'] and len
     st.plotly_chart(fig1, use_container_width=True)
     st.markdown(
         f"**Explicación:** El cliente retiró un promedio de **${user_df['avg_amount_withdrawals']:,.2f}**, "
-        f"ubicándose en el percentil {pct_retiros:.1f}° de todos los clientes."
+        f"ubicándose en el percentil **{pct_retiros:.1f}%** de todos los clientes."
     )
 
     # 2) Histograma de compras/semana
@@ -187,7 +187,7 @@ if st.session_state['search_active'] and st.session_state['user_search'] and len
     st.plotly_chart(fig2, use_container_width=True)
     st.markdown(
         f"**Explicación:** El cliente realiza en promedio **{user_df['avg_purchases_per_week']:.2f}** compras/semana, "
-        f"situándose en el percentil {pct_compras:.1f}° frente a la base."
+        f"situándose en el percentil **{pct_compras:.1f}%** frente a la base."
     )
 
     # 3) Radar chart
