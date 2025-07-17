@@ -16,12 +16,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Configuración de la página(
+# Configuración de la página
+st.set_page_config(
     page_title="Dashboard de Clientes Bancarios",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-st.title("🏦 Dashboard de Clientes Bancarios")
+st.title("🏦 Dashboard de Clientes Bancarios")("🏦 Dashboard de Clientes Bancarios")
 
 # ======================================
 # Carga y preprocesamiento de los datos
