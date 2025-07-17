@@ -110,16 +110,25 @@ if seleccionados:
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            fig1 = px.histogram(sub_df, x='avg_amount_withdrawals', nbins=20, title="Retiros Promedio")
-            fig1.update_layout(height=250)
+            sub_df_sorted = sub_df.sort_values('avg_amount_withdrawals').reset_index(drop=True)
+            sub_df_sorted['cliente'] = sub_df_sorted.index
+            fig1 = px.line(
+                sub_df_sorted,
+                x='cliente',
+                y='avg_amount_withdrawals',
+                markers=True,
+                title="Retiros Promedio (Curva de línea)"
+            )
+            fig1.update_traces(line=dict(color='brown'), marker=dict(color='green', size=6))
+            fig1.update_layout(height=250, xaxis_title='Clientes ordenados', yaxis_title='Retiros')
             st.plotly_chart(fig1, use_container_width=True)
 
         with col2:
-            fig2 = px.histogram(sub_df, x='avg_purchases_per_week', nbins=10, title="Compras por Semana")
-            fig2.update_layout(height=250)
+            fig2 = px.box(sub_df, y='avg_purchases_per_week', points='all', title="Compras por Semana (Boxplot)")
+            fig2.update_layout(height=250, yaxis_title='Compras')
             st.plotly_chart(fig2, use_container_width=True)
 
         with col3:
-            fig3 = px.histogram(sub_df, x='age', nbins=20, title="Distribución de Edad")
+            fig3 = px.pie(sub_df, names='age', title="Distribución de Edad (Pastel)")
             fig3.update_layout(height=250)
             st.plotly_chart(fig3, use_container_width=True)
