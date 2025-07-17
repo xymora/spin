@@ -41,43 +41,60 @@ df['credit_score'] = df.apply(
 # Filtros
 with st.sidebar:
     st.header("🔍 Filtros opcionales")
-    apply_filters = st.checkbox("Aplicar filtros", value=False)
+    aplicar_filtros = st.checkbox("Aplicar filtros", value=False)
 
-    if apply_filters:
-        edad_range = st.slider("Edad", int(df['age'].min()), int(df['age'].max()), (18, 80))
-        retiro_range = st.slider("Retiros promedio", float(df['avg_amount_withdrawals'].min()), float(df['avg_amount_withdrawals'].max()), (0.0, 100000.0))
-        compra_range = st.slider("Compras por semana", float(df['avg_purchases_per_week'].min()), float(df['avg_purchases_per_week'].max()), (0.0, 10.0))
+    if aplicar_filtros:
+        edad_rango = st.slider("Edad", int(df['age'].min()), int(df['age'].max()), (18, 80))
+        retiro_rango = st.slider("Retiros promedio", float(df['avg_amount_withdrawals'].min()), float(df['avg_amount_withdrawals'].max()), (0.0, 100000.0))
+        compra_rango = st.slider("Compras por semana", float(df['avg_purchases_per_week'].min()), float(df['avg_purchases_per_week'].max()), (0.0, 10.0))
 
-        credit_order = [
+        orden_credit = [
             '🔵 Premium Credit',
             '🟢 Basic Credit',
             '🟡 Moderate Risk',
             '🔴 High Risk'
         ]
-        credit_types = [c for c in credit_order if c in df['credit_score'].unique()]
-        selected_types = st.multiselect("Credit Score", credit_types, default=credit_types)
+        tipos_credito = [c for c in orden_credit if c in df['credit_score'].unique()]
+        seleccionados = st.multiselect("Credit Score", tipos_credito, default=tipos_credito)
 
-if apply_filters:
-    df_filtered = df[
-        (df['age'].between(*edad_range)) &
-        (df['avg_amount_withdrawals'].between(*retiro_range)) &
-        (df['avg_purchases_per_week'].between(*compra_range)) &
-        (df['credit_score'].isin(selected_types))
+# Aplicar filtros
+if aplicar_filtros:
+    df_filtrado = df[
+        (df['age'].between(*edad_rango)) &
+        (df['avg_amount_withdrawals'].between(*retiro_rango)) &
+        (df['avg_purchases_per_week'].between(*compra_rango)) &
+        (df['credit_score'].isin(seleccionados))
     ]
 else:
-    df_filtered = df.copy()
+    df_filtrado = df.copy()
 
-# Mostrar tabla
+# Reordenar columnas
+primeras_columnas = [
+    'user',
+    'age',
+    'index',
+    'credit_score',
+    'user_type',
+    'registration_channel',
+    'creation_flow',
+    'creation_date',
+    'avg_amount_withdrawals'
+]
+otras_columnas = sorted([col for col in df_filtrado.columns if col not in primeras_columnas])
+columnas_finales = primeras_columnas + otras_columnas
+df_mostrar = df_filtrado[columnas_finales]
+
+# Mostrar datos
 st.subheader("📋 Clientes mostrados")
-st.dataframe(df_filtered, use_container_width=True)
-st.markdown(f"🔎 Total mostrados: **{len(df_filtered):,}** / 100,000")
+st.dataframe(df_mostrar, use_container_width=True)
+st.markdown(f"🔎 Total mostrados: **{len(df_mostrar):,}** / 100,000")
 
-# Gráfica general de credit score
-if apply_filters and selected_types:
-    count_by_score = df_filtered['credit_score'].value_counts().reindex(credit_order).dropna().reset_index()
-    count_by_score.columns = ['credit_score', 'count']
+# Gráfica principal de Credit Score
+if aplicar_filtros and seleccionados:
+    conteo = df_filtrado['credit_score'].value_counts().reindex(orden_credit).dropna().reset_index()
+    conteo.columns = ['credit_score', 'count']
     fig = px.bar(
-        count_by_score,
+        conteo,
         x='credit_score', y='count',
         color='credit_score', text='count',
         title="Distribución de clientes por tipo de Credit Score",
@@ -87,10 +104,10 @@ if apply_filters and selected_types:
     fig.update_traces(textposition='outside')
     st.plotly_chart(fig, use_container_width=True)
 
-    # Gráficas financieras individuales
+    # Análisis financiero individual por tipo
     st.subheader("📊 Análisis Financiero por Credit Score")
-    for score in selected_types:
-        sub_df = df_filtered[df_filtered['credit_score'] == score]
+    for score in seleccionados:
+        sub_df = df_filtrado[df_filtrado['credit_score'] == score]
         st.markdown(f"### {score}")
 
         col1, col2, col3 = st.columns(3)
