@@ -134,9 +134,44 @@ if not df_filtered.empty:
 else:
     st.warning("No hay clientes para mostrar con los filtros actuales.")
 
-# Botón exportar
-csv = df_filtered.to_csv(index=False).encode('utf-8')
-st.download_button("💾 Descargar CSV", data=csv, file_name='clientes_filtrados.csv')
+# Si se filtró un solo usuario, mostrar 5 gráficas de perfil de crédito
+if st.session_state['search_active'] and st.session_state['user_search'] and len(df_filtered)==1:
+    user_df = df_filtered.iloc[0]
+    st.subheader(f"📈 Gráficas de crédito para `{st.session_state['user_search']}`")
+    # Gráfica 1: Posición en distrib. de retiros
+    fig1 = px.histogram(df, x='avg_amount_withdrawals', nbins=20, title="Distribución Retiros (tu posición)")
+    fig1.add_vline(x=user_df['avg_amount_withdrawals'], line_dash='dash', annotation_text='Tú', annotation_position='top right')
+    # Gráfica 2: Posición en distrib. de compras
+    fig2 = px.histogram(df, x='avg_purchases_per_week', nbins=20, title="Distribución Compras/Semana (tu posición)")
+    fig2.add_vline(x=user_df['avg_purchases_per_week'], line_dash='dash', annotation_text='Tú', annotation_position='top right')
+    # Gráfica 3: Radar de features
+    radar_df = pd.DataFrame({
+        'Feature': ['Retiros', 'Compras/Semana', 'Edad'],
+        'Value': [user_df['avg_amount_withdrawals'], user_df['avg_purchases_per_week'], user_df['age']]
+    })
+    fig3 = px.line_polar(radar_df, r='Value', theta='Feature', line_close=True, title='Perfil Radar')
+    # Gráfica 4: Comparativa vs mediana
+    medians = df[['avg_amount_withdrawals','avg_purchases_per_week','age']].median()
+    comp_df = pd.DataFrame({
+        'Metric': ['Retiros','Compras/Semana','Edad'],
+        'Usuario': [user_df['avg_amount_withdrawals'], user_df['avg_purchases_per_week'], user_df['age']],
+        'Mediana': medians.values
+    })
+    fig4 = px.bar(comp_df, x='Metric', y=['Usuario','Mediana'], barmode='group', title='Usuario vs Mediana')
+    # Gráfica 5: Historial crediticio (score count distribution)
+    score_counts = df['credit_score'].value_counts().reindex(overall_order).reset_index()
+    score_counts.columns = ['credit_score','count']
+    fig5 = px.pie(score_counts, names='credit_score', values='count', title='Distribución Global de Credit Scores')
+    # Mostrar en layout
+    g1, g2 = st.columns(2)
+    g3, g4 = st.columns(2)
+    g1.plotly_chart(fig1, use_container_width=True)
+    g2.plotly_chart(fig2, use_container_width=True)
+    g3.plotly_chart(fig3, use_container_width=True)
+    g4.plotly_chart(fig4, use_container_width=True)
+    st.plotly_chart(fig5, use_container_width=True)
+
+# Botón exportar("💾 Descargar CSV", data=csv, file_name='clientes_filtrados.csv')
 
 # ====================================
 # Gráficas
