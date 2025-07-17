@@ -65,21 +65,27 @@ selected_scores = st.sidebar.multiselect(
 
 # Búsqueda de usuario
 if 'user_search' not in st.session_state:
-    st.session_state.user_search = ''
+    st.session_state['user_search'] = ''
 if 'search_active' not in st.session_state:
-    st.session_state.search_active = False
+    st.session_state['search_active'] = False
 
-st.sidebar.text_input(
-    "👤 Usuario exacto:", key='user_search'
+# Input de usuario exacto
+given_user = st.sidebar.text_input(
+    "👤 Usuario exacto:",
+    value=st.session_state['user_search'],
+    key='user_search'
 )
-buscar, borrar = st.sidebar.columns(2)
-with buscar:
-    if st.button("Buscar Usuario"):
-        st.session_state.search_active = True
-with borrar:
-    if st.button("Borrar Búsqueda"):
-        st.session_state.user_search = ''
-        st.session_state.search_active = False
+
+# Callbacks y botones
+def clear_search():
+    st.session_state['user_search'] = ''
+    st.session_state['search_active'] = False
+
+search_clicked = st.sidebar.button("Buscar Usuario")
+clear_clicked = st.sidebar.button("Borrar Búsqueda", on_click=clear_search)
+
+if search_clicked:
+    st.session_state['search_active'] = True
 
 # Filtrar DataFrame por credit score
 df_filtered = df[df['credit_score'].isin(selected_scores)].copy()
