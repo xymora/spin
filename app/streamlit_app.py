@@ -153,13 +153,16 @@ for score in selected_scores:
                 title="Compras promedio por semana", height=250
             )
             fig2.update_traces(textposition='outside')
-            st.plotly_chart(fig2, use_container_width=True)
-        with c3:
-            kde = gaussian_kde(sub['age'])
-            x_vals = np.linspace(sub['age'].min(), sub['age'].max(), 100)
-            y_vals = kde(x_vals)
-            fig3 = px.area(x=x_vals, y=y_vals, title="Distribución de edad", height=250)
-            st.plotly_chart(fig3, use_container_width=True)
+            st.plotly_chart(fig2, use_container_width=True)        with c3:
+            # Distribución de edad (KDE) - requiere al menos 2 puntos
+            if sub['age'].size > 1:
+                kde = gaussian_kde(sub['age'])
+                x_vals = np.linspace(sub['age'].min(), sub['age'].max(), 100)
+                y_vals = kde(x_vals)
+                fig3 = px.area(x=x_vals, y=y_vals, title="Distribución de edad", height=250)
+                st.plotly_chart(fig3, use_container_width=True)
+            else:
+                st.write("Distribución de edad no disponible: solo un dato")
 
 # --------------------------------------
 # K-Means (constante K=4)
