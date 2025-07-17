@@ -48,26 +48,26 @@ df['credit_score'] = df.apply(
 )
 
 # =====================
-# Filtros en Sidebar
+# Sidebar filtros
 # =====================
 with st.sidebar:
     st.header("🔍 Filtros opcionales")
-    orden_credit = [
-        '🔵 Premium Credit',
-        '🟢 Basic Credit',
-        '🟡 Moderate Risk',
-        '🔴 High Risk'
-    ]
+    orden_credit = ['🔵 Premium Credit', '🟢 Basic Credit', '🟡 Moderate Risk', '🔴 High Risk']
     tipos_credito = [c for c in orden_credit if c in df['credit_score'].unique()]
     seleccionados = st.multiselect("Credit Score", tipos_credito, default=tipos_credito)
-    st.divider()
+
     usuario = st.text_input("👤 Ingresar usuario exacto")
-    buscar = st.button("Buscar usuario")
+    col_buscar, col_borrar = st.columns([1, 1])
+    buscar = col_buscar.button("Buscar")
+    borrar = col_borrar.button("Borrar")
+
+    if borrar:
+        usuario = ""
 
 df_filtrado = df[df['credit_score'].isin(seleccionados)]
 
 # =====================
-# Mostrar datos
+# Mostrar datos generales
 # =====================
 primeras_columnas = [
     'user', 'age', 'index', 'credit_score',
@@ -134,19 +134,16 @@ for score in seleccionados:
         st.plotly_chart(fig3, use_container_width=True)
 
 # =====================
-# Clustering automático de clientes
+# Agrupamiento Inteligente (K-Means)
 # =====================
 st.subheader("🤖 Agrupamiento Inteligente (K-Means)")
 
 features = ['avg_amount_withdrawals', 'avg_purchases_per_week', 'age']
 data_for_cluster = df[features].copy()
-
 scaler = StandardScaler()
 scaled_data = scaler.fit_transform(data_for_cluster)
-
 kmeans = KMeans(n_clusters=4, random_state=42)
 clusters = kmeans.fit_predict(scaled_data)
-
 df['cluster'] = clusters
 
 fig_cluster = px.scatter_3d(
@@ -157,7 +154,7 @@ fig_cluster.update_layout(height=500)
 st.plotly_chart(fig_cluster, use_container_width=True)
 
 # =====================
-# Visualización individual por usuario
+# Detalles individuales si hay búsqueda
 # =====================
 if buscar and usuario:
     user_data = df[df['user'] == usuario]
@@ -168,13 +165,12 @@ if buscar and usuario:
         col1, col2, col3 = st.columns(3)
         col1.metric("Edad", int(user_data['age'].values[0]))
         col2.metric("Índice", int(user_data['index'].values[0]))
-        col3.metric("Credit Score", user_data['credit_score'].values[0])
+        col3.metric("Retiros promedio", f"${user_data['avg_amount_withdrawals'].values[0]:,.2f}")
 
-        col1.metric("Retiros promedio", f"${user_data['avg_amount_withdrawals'].values[0]:,.2f}")
-        col2.metric("Compras x semana", user_data['avg_purchases_per_week'].values[0])
-        col3.metric("Historial crediticio", user_data['credit_score'].values[0])
+        col1.metric("Compras por semana", user_data['avg_purchases_per_week'].values[0])
+        col2.metric("Historial crediticio", user_data['credit_score'].values[0])
 
-        st.markdown("### 📈 Gráficas personales")
+        st.markdown("### 📈 Gráficas del usuario")
         row1_col1, row1_col2 = st.columns(2)
         row2_col1, row2_col2 = st.columns(2)
 
