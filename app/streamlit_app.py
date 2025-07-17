@@ -20,11 +20,9 @@ def load_data(url: str) -> pd.DataFrame:
     Detecta y convierte columnas de depósito si existen.
     """
     df = pd.read_csv(url)
-    # Convertir columnas de retiros y compras
     for col in ['avg_amount_withdrawals', 'avg_purchases_per_week']:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-    # Detectar y convertir columnas de depósito promedio
     deposit_cols = [c for c in df.columns if 'deposit' in c.lower()]
     for col in deposit_cols:
         df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
@@ -36,7 +34,7 @@ if df.empty:
     st.error("No se pudo cargar la base de datos.")
     st.stop()
 
-# Clasificación crediticia usando vectorización
+# Clasificación crediticia
 def classify_credit(df: pd.DataFrame) -> pd.DataFrame:
     conditions = [
         (df['avg_amount_withdrawals'] > 50000) & (df['avg_purchases_per_week'] == 0),
@@ -59,148 +57,108 @@ df['compras_binned'] = pd.cut(
 
 # Sidebar de filtros
 st.sidebar.header("🔍 Filtros opcionales")
+# Filtro por tipo de crédito
 credit_order = ['🔵 Premium Credit', '🟢 Basic Credit', '🟡 Moderate Risk', '🔴 High Risk']
 available_scores = [c for c in credit_order if c in df['credit_score'].unique()]
 selected_scores = st.sidebar.multiselect("Credit Score", available_scores, default=available_scores)
 
-# Input de usuario y botones
-# Text input para el nombre de usuario con session_state
+# Input de usuario y botones alineados
+col1, col2 = st.sidebar.columns([2,1])
 if 'user_input' not in st.session_state:
     st.session_state.user_input = ''
-st.sidebar.text_input(
-    "👤 Ingresar usuario exacto",
-    key="user_input"
-)
+with col1:
+    st.text_input("👤 Ingresar usuario exacto", key="user_input")
+with col2:
+    if col2.button("Buscar"):
+        st.session_state.search = True
+    if col2.button("Borrar"):
+        st.session_state.user_input = ''
+        st.session_state.search = False
 
-# Botón Borrar: solo limpia el campo de texto
-def clear_text():
-    st.session_state.user_input = ''
-st.sidebar.button("Borrar", on_click=clear_text)
-
-# Botón Buscar: dispara la visualización de detalles
-search = st.sidebar.button("Buscar")
+# Control de búsqueda
+deferenced = st.session_state.get('search', False)
 
 # Filtrar DataFrame
 filtered_df = df[df['credit_score'].isin(selected_scores)].copy()
 
-# Mostrar tabla de clientes
-# Incluir columna de depósitos si existe
-table_cols = [
-    'user', 'age', 'index', 'credit_score',
-    'user_type', 'registration_channel', 'creation_flow',
-    'creation_date', 'avg_amount_withdrawals'
-]
+# Tabla de clientes
+table_cols = ['user', 'age', 'index', 'credit_score', 'user_type',
+              'registration_channel', 'creation_flow', 'creation_date', 'avg_amount_withdrawals']
 deposit_cols = [c for c in filtered_df.columns if 'deposit' in c.lower()]
-for dcol in deposit_cols:
-    if dcol not in table_cols:
-        table_cols.append(dcol)
-other_cols = sorted([col for col in filtered_df.columns if col not in table_cols])
+for d in deposit_cols:
+    if d not in table_cols:
+        table_cols.append(d)
+other_cols = sorted([c for c in filtered_df.columns if c not in table_cols])
 df_display = filtered_df[table_cols + other_cols]
 
 st.subheader("📋 Clientes mostrados")
 st.dataframe(df_display, use_container_width=True)
 st.markdown(f"🔎 Total mostrados: **{len(df_display):,}** / {len(df):,}")
 
-# Distribución general por Credit Score
+# Gráfica distribución
 if selected_scores:
-    count_df = (
-        filtered_df['credit_score']
-        .value_counts()
-        .reindex(credit_order, fill_value=0)
-        .reset_index()
-    )
+    count_df = (filtered_df['credit_score'].value_counts()
+                .reindex(credit_order, fill_value=0).reset_index())
     count_df.columns = ['credit_score', 'count']
-    fig = px.bar(
-        count_df, x='credit_score', y='count', color='credit_score', text='count',
-        title="Distribución de clientes por tipo de Credit Score"
-    )
+    fig = px.bar(count_df, x='credit_score', y='count', color='credit_score', text='count',
+                 title="Distribución de clientes por Credit Score")
     fig.update_layout(showlegend=False, height=400)
     fig.update_traces(textposition='outside')
     st.plotly_chart(fig, use_container_width=True)
 
-# Análisis financiero por tipo de Credit Score
-st.subheader("📊 Análisis Financiero por Credit Score")
+# Análisis financiero\st.subheader("📊 Análisis Financiero por Credit Score")
 for score in selected_scores:
     st.markdown(f"### {score}")
     sub = filtered_df[filtered_df['credit_score'] == score]
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        fig1 = px.line(
-            sub.sort_values('avg_amount_withdrawals'),
-            y='avg_amount_withdrawals',
-            title="Retiros promedio",
-            height=250
-        )
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        fig1 = px.line(sub.sort_values('avg_amount_withdrawals'), y='avg_amount_withdrawals',
+                       title="Retiros promedio", height=250)
         st.plotly_chart(fig1, use_container_width=True)
-
-    with col2:
+    with c2:
         counts = sub['compras_binned'].value_counts().sort_index()
-        fig2 = px.bar(
-            x=counts.index.astype(str),
-            y=counts.values,
-            labels={'x': 'Compras/semana', 'y': 'Cantidad'},
-            text=counts.values,
-            title="Compras promedio por semana",
-            height=250
-        )
+        fig2 = px.bar(x=counts.index.astype(str), y=counts.values,
+                      labels={'x':'Compras/semana','y':'Cantidad'}, text=counts.values,
+                      title="Compras promedio por semana", height=250)
         fig2.update_traces(textposition='outside')
         st.plotly_chart(fig2, use_container_width=True)
-
-    with col3:
-        ages = sub['age']
-        kde = gaussian_kde(ages)
-        x_vals = np.linspace(ages.min(), ages.max(), 100)
+    with c3:
+        kde = gaussian_kde(sub['age'])
+        x_vals = np.linspace(sub['age'].min(), sub['age'].max(), 100)
         y_vals = kde(x_vals)
         fig3 = px.area(x=x_vals, y=y_vals, title="Distribución de edad", height=250)
         st.plotly_chart(fig3, use_container_width=True)
 
-# Agrupamiento K-Means
-st.subheader("🤖 Agrupamiento Inteligente (K-Means)")
-features = ['avg_amount_withdrawals', 'avg_purchases_per_week', 'age']
+# K-Means\st.subheader("🤖 Agrupamiento (K-Means)")
+features = ['avg_amount_withdrawals','avg_purchases_per_week','age']
 scaled = StandardScaler().fit_transform(df[features])
 kmeans = KMeans(n_clusters=4, random_state=42)
 labels = kmeans.fit_predict(scaled)
 df['cluster'] = labels
-
-fig_cluster = px.scatter_3d(
-    df,
-    x='avg_amount_withdrawals',
-    y='avg_purchases_per_week',
-    z='age',
-    color='cluster',
-    title="Agrupamiento de Clientes (K-Means)",
-    height=500
-)
+fig_cluster = px.scatter_3d(df, x='avg_amount_withdrawals', y='avg_purchases_per_week',
+                            z='age', color='cluster', title="Agrupamiento Clientes", height=500)
 st.plotly_chart(fig_cluster, use_container_width=True)
 
-# Visualización individual por usuario
-if search and st.session_state.user_input:
+# Detalle por usuario
+if dereferenced and st.session_state.user_input:
     user_df = df[df['user'] == st.session_state.user_input]
     if user_df.empty:
         st.warning("Usuario no encontrado.")
     else:
         st.markdown(f"## 📌 Detalles del usuario `{st.session_state.user_input}`")
-        # Primera fila de métricas
         m1, m2, m3 = st.columns(3)
-        m1.metric("Edad", int(user_df['age'].iloc[0]))
-        m2.metric("Índice", int(user_df['index'].iloc[0]))
-        m3.metric("Credit Score", user_df['credit_score'].iloc[0])
-
-        # Segunda fila de métricas
+        m1.metric("Edad", int(user_df['age'].iat[0]))
+        m2.metric("Índice", int(user_df['index'].iat[0]))
+        m3.metric("Credit Score", user_df['credit_score'].iat[0])
         m4, m5, m6 = st.columns(3)
-        m4.metric("Retiros promedio", f"${user_df['avg_amount_withdrawals'].iloc[0]:,.2f}")
-        m5.metric("Compras x semana", round(user_df['avg_purchases_per_week'].iloc[0], 2))
-        m6.metric("Tipo de usuario", user_df['user_type'].iloc[0])
-
+        m4.metric("Retiros promedio", f"${user_df['avg_amount_withdrawals'].iat[0]:,.2f}")
+        m5.metric("Compras x semana", round(user_df['avg_purchases_per_week'].iat[0],2))
+        m6.metric("Tipo usuario", user_df['user_type'].iat[0])
         st.markdown("### 📈 Gráficas personales")
-        r1c1, r1c2 = st.columns(2)
-        r2c1, r2c2 = st.columns(2)
-        user_figs = [
-            px.bar(user_df, x='user', y='avg_amount_withdrawals', title="Retiros promedio"),
-            px.pie(user_df, names='credit_score', title="Tipo de Score"),
-            px.scatter(user_df, x='age', y='avg_purchases_per_week', title="Edad vs Compras"),
-            px.line(user_df, x='user', y='index', title="Índice del cliente")
-        ]
-        for col, fig in zip([r1c1, r1c2, r2c1, r2c2], user_figs):
+        r1, r2 = st.columns(2)
+        fig_list = [px.bar(user_df, x='user', y='avg_amount_withdrawals', title="Retiros"),
+                    px.pie(user_df, names='credit_score', title="Score"),
+                    px.scatter(user_df, x='age', y='avg_purchases_per_week', title="Edad vs Compras"),
+                    px.line(user_df, x='user', y='index', title="Índice")]
+        for col, fig in zip([r1, r1, r2, r2], fig_list):
             col.plotly_chart(fig, use_container_width=True)
