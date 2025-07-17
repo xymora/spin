@@ -12,6 +12,10 @@ from sklearn.metrics import (
     classification_report, confusion_matrix, roc_curve, auc,
     silhouette_score, precision_recall_curve
 )
+
+# Imports para logging y control de tiempo
+import logging
+import time
 # Intentar importar seaborn para estadísticas visuales
 try:
     import seaborn as sns
