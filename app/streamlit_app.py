@@ -60,9 +60,8 @@ with st.sidebar:
         retiro_range = st.slider("Retiros promedio", float(retiro_min), float(retiro_max), (float(retiro_min), float(retiro_max)))
         compra_range = st.slider("Compras por semana", float(compra_min), float(compra_max), (float(compra_min), float(compra_max)))
 
-        credit_order = ['🔴 High Risk', '🟡 Moderate Risk', '🟢 Basic Credit', '🔵 Premium Credit']
-        credit_types = [c for c in credit_order if c in df['credit_score'].unique().tolist()]
-        selected_types = st.multiselect("Credit Score", credit_types, default=credit_types)
+        credit_types = df['credit_score'].unique().tolist()
+        selected_types = st.multiselect("Credit Score", sorted(credit_types), default=credit_types)
 
 # =====================
 # Aplicar filtros
@@ -81,8 +80,15 @@ else:
 # Reordenar columnas
 # =====================
 first_cols = [
-    'user', 'age', 'index', 'credit_score', 'user_type',
-    'registration_channel', 'creation_flow', 'creation_date', 'avg_amount_withdrawals'
+    'user',
+    'age',
+    'index',
+    'credit_score',
+    'user_type',
+    'registration_channel',
+    'creation_flow',
+    'creation_date',
+    'avg_amount_withdrawals'
 ]
 other_cols = sorted([col for col in df_filtered.columns if col not in first_cols])
 final_cols = first_cols + other_cols
@@ -96,7 +102,7 @@ st.dataframe(df_display, use_container_width=True)
 st.markdown(f"🔎 Total mostrados: **{len(df_display):,}** / 100,000")
 
 # =====================
-# Gráfica general
+# Gráfica principal Credit Score
 # =====================
 if apply_filters and selected_types:
     count_by_score = df_filtered['credit_score'].value_counts().reset_index()
@@ -109,7 +115,8 @@ if apply_filters and selected_types:
         color='credit_score',
         text='count',
         title='Distribución de clientes por tipo de Credit Score',
-        color_discrete_sequence=["red", "gold", "green", "blue"]
+        color_discrete_sequence=["red", "gold", "green", "blue"],
+        height=300
     )
     fig.update_traces(textposition='outside')
     fig.update_layout(
@@ -127,17 +134,25 @@ if apply_filters and selected_types:
         sub_df = df_filtered[df_filtered['credit_score'] == score]
 
         col1, col2 = st.columns(2)
+
         with col1:
-            fig1 = px.box(sub_df, y='avg_amount_withdrawals', title="Distribución de retiros promedio")
+            fig1 = px.box(sub_df, y='avg_amount_withdrawals', title="Distribución de retiros promedio", height=300)
             st.plotly_chart(fig1, use_container_width=True)
-            fig3 = px.histogram(sub_df, x='age', nbins=20, title="Distribución de edad")
+
+            fig3 = px.histogram(sub_df, x='age', nbins=20, title="Distribución de edad", height=300)
             st.plotly_chart(fig3, use_container_width=True)
 
         with col2:
-            fig2 = px.box(sub_df, y='avg_purchases_per_week', title="Distribución de compras por semana")
+            fig2 = px.box(sub_df, y='avg_purchases_per_week', title="Distribución de compras por semana", height=300)
             st.plotly_chart(fig2, use_container_width=True)
-            fig4 = px.bar(sub_df['registration_channel'].value_counts().reset_index(),
-                          x='index', y='registration_channel',
-                          labels={'index': 'Canal de Registro', 'registration_channel': 'Cantidad'},
-                          title="Usuarios por canal de registro")
+
+            canal_df = sub_df['registration_channel'].value_counts().reset_index()
+            canal_df.columns = ['registration_channel', 'count']
+
+            fig4 = px.bar(canal_df,
+                          x='registration_channel', y='count',
+                          labels={'registration_channel': 'Canal de Registro', 'count': 'Cantidad'},
+                          title="Usuarios por canal de registro",
+                          height=300)
+            fig4.update_layout(xaxis_tickangle=-30)
             st.plotly_chart(fig4, use_container_width=True)
