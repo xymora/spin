@@ -9,9 +9,6 @@ from sklearn.preprocessing import StandardScaler
 st.set_page_config(page_title="Dashboard de Clientes Bancarios", layout="wide")
 st.title("🏦 Dashboard de Clientes Bancarios")
 
-# =====================
-# Cargar datos
-# =====================
 DATA_URL = "https://covenantaegis.com/segmentation_data_recruitment.csv"
 
 @st.cache_data
@@ -29,9 +26,7 @@ df = load_data()
 if df.empty:
     st.stop()
 
-# =====================
-# Clasificación crediticia
-# =====================
+# Clasificación
 def classify_credit(withdrawals, purchases):
     if withdrawals > 50000 and purchases == 0:
         return '🔵 Premium Credit'
@@ -47,28 +42,24 @@ df['credit_score'] = df.apply(
     axis=1
 )
 
-# =====================
-# Sidebar filtros
-# =====================
+# Sidebar
 with st.sidebar:
     st.header("🔍 Filtros opcionales")
     orden_credit = ['🔵 Premium Credit', '🟢 Basic Credit', '🟡 Moderate Risk', '🔴 High Risk']
     tipos_credito = [c for c in orden_credit if c in df['credit_score'].unique()]
     seleccionados = st.multiselect("Credit Score", tipos_credito, default=tipos_credito)
 
-    usuario = st.text_input("👤 Ingresar usuario exacto")
-    col_buscar, col_borrar = st.columns([1, 1])
-    buscar = col_buscar.button("Buscar")
-    borrar = col_borrar.button("Borrar")
+    usuario = st.text_input("👤 Ingresar usuario exacto", key="usuario_input")
+    col_buscar, col_borrar = st.columns(2)
+    buscar = col_buscar.button("Buscar", use_container_width=True)
+    borrar = col_borrar.button("Borrar", use_container_width=True)
 
     if borrar:
-        usuario = ""
+        st.session_state.usuario_input = ""
 
 df_filtrado = df[df['credit_score'].isin(seleccionados)]
 
-# =====================
-# Mostrar datos generales
-# =====================
+# Mostrar tabla
 primeras_columnas = [
     'user', 'age', 'index', 'credit_score',
     'user_type', 'registration_channel', 'creation_flow',
@@ -81,9 +72,7 @@ st.subheader("📋 Clientes mostrados")
 st.dataframe(df_mostrar, use_container_width=True)
 st.markdown(f"🔎 Total mostrados: **{len(df_mostrar):,}** / 100,000")
 
-# =====================
-# Gráfica general por Credit Score
-# =====================
+# Gráfica general
 if seleccionados:
     conteo = df_filtrado['credit_score'].value_counts().reindex(orden_credit).dropna().reset_index()
     conteo.columns = ['credit_score', 'count']
@@ -94,9 +83,7 @@ if seleccionados:
     fig.update_traces(textposition='outside')
     st.plotly_chart(fig, use_container_width=True)
 
-# =====================
-# Análisis Financiero por tipo de Credit Score
-# =====================
+# Análisis Financiero
 st.subheader("📊 Análisis Financiero por Credit Score")
 for score in seleccionados:
     sub_df = df_filtrado[df_filtrado['credit_score'] == score]
@@ -133,11 +120,8 @@ for score in seleccionados:
         fig3.update_layout(title="Distribución de edad", height=250)
         st.plotly_chart(fig3, use_container_width=True)
 
-# =====================
-# Agrupamiento Inteligente (K-Means)
-# =====================
+# Clustering
 st.subheader("🤖 Agrupamiento Inteligente (K-Means)")
-
 features = ['avg_amount_withdrawals', 'avg_purchases_per_week', 'age']
 data_for_cluster = df[features].copy()
 scaler = StandardScaler()
@@ -150,12 +134,9 @@ fig_cluster = px.scatter_3d(
     df, x='avg_amount_withdrawals', y='avg_purchases_per_week', z='age',
     color='cluster', title="Agrupamiento de Clientes (K-Means)"
 )
-fig_cluster.update_layout(height=500)
 st.plotly_chart(fig_cluster, use_container_width=True)
 
-# =====================
-# Detalles individuales si hay búsqueda
-# =====================
+# Visualización individual
 if buscar and usuario:
     user_data = df[df['user'] == usuario]
     if user_data.empty:
@@ -165,21 +146,21 @@ if buscar and usuario:
         col1, col2, col3 = st.columns(3)
         col1.metric("Edad", int(user_data['age'].values[0]))
         col2.metric("Índice", int(user_data['index'].values[0]))
-        col3.metric("Retiros promedio", f"${user_data['avg_amount_withdrawals'].values[0]:,.2f}")
+        col3.metric("Credit Score", user_data['credit_score'].values[0])
 
-        col1.metric("Compras por semana", user_data['avg_purchases_per_week'].values[0])
-        col2.metric("Historial crediticio", user_data['credit_score'].values[0])
+        col1.metric("Retiros promedio", f"${user_data['avg_amount_withdrawals'].values[0]:,.2f}")
+        col2.metric("Compras x semana", user_data['avg_purchases_per_week'].values[0])
 
-        st.markdown("### 📈 Gráficas del usuario")
-        row1_col1, row1_col2 = st.columns(2)
-        row2_col1, row2_col2 = st.columns(2)
+        st.markdown("### 📈 Gráficas personales")
+        g1, g2 = st.columns(2)
+        g3, g4 = st.columns(2)
 
-        fig_u1 = px.bar(user_data, x="user", y="avg_amount_withdrawals", title="Retiros promedio")
-        fig_u2 = px.pie(user_data, names="credit_score", title="Tipo de Score")
-        fig_u3 = px.scatter(user_data, x="age", y="avg_purchases_per_week", title="Edad vs Compras")
-        fig_u4 = px.line(user_data, x="user", y="index", title="Índice del cliente")
+        fig1 = px.bar(user_data, x="user", y="age", title="Edad del usuario")
+        fig2 = px.line(user_data, x="user", y="avg_amount_withdrawals", title="Retiros promedio")
+        fig3 = px.bar(user_data, x="user", y="avg_purchases_per_week", title="Compras por semana")
+        fig4 = px.bar(user_data, x="user", y="index", title="Índice")
 
-        row1_col1.plotly_chart(fig_u1, use_container_width=True)
-        row1_col2.plotly_chart(fig_u2, use_container_width=True)
-        row2_col1.plotly_chart(fig_u3, use_container_width=True)
-        row2_col2.plotly_chart(fig_u4, use_container_width=True)
+        g1.plotly_chart(fig1, use_container_width=True)
+        g2.plotly_chart(fig2, use_container_width=True)
+        g3.plotly_chart(fig3, use_container_width=True)
+        g4.plotly_chart(fig4, use_container_width=True)
