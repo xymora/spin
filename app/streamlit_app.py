@@ -55,9 +55,10 @@ with st.sidebar:
         wd_min, wd_max = df['avg_amount_withdrawals'].min(), df['avg_amount_withdrawals'].max()
         pw_min, pw_max = df['avg_purchases_per_week'].min(), df['avg_purchases_per_week'].max()
 
-        age_range = st.slider("Age", age_min, age_max, (age_min, age_max))
+        # Reordenados como en la imagen
         wd_range = st.slider("Average Withdrawals", float(wd_min), float(wd_max), (float(wd_min), float(wd_max)))
         pw_range = st.slider("Purchases per Week", float(pw_min), float(pw_max), (float(pw_min), float(pw_max)))
+        age_range = st.slider("Age", age_min, age_max, (age_min, age_max))
 
         credit_types = df['credit_score'].unique().tolist()
         selected_types = st.multiselect("Credit Score", sorted(credit_types), default=credit_types)
@@ -85,8 +86,8 @@ first_cols = [
     'credit_score',
     'user_type',
     'registration_channel',
-    'creation_flow',      # ← now comes before
-    'creation_date',      # ← now comes after
+    'creation_flow',
+    'creation_date',
     'avg_amount_withdrawals'
 ]
 other_cols = sorted([col for col in df_filtered.columns if col not in first_cols])
