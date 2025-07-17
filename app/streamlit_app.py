@@ -42,6 +42,14 @@ def classify_credit(df: pd.DataFrame) -> pd.DataFrame:
 
 df = classify_credit(df)
 
+# Preparar categorías de compras antes de filtrar
+df['compras_binned'] = pd.cut(
+    df['avg_purchases_per_week'],
+    bins=[0, 1, 2, 3, 4, 5, np.inf],
+    labels=["0", "1", "2", "3", "4", "5 o más"],
+    right=False
+)
+
 # Sidebar de filtros
 st.sidebar.header("🔍 Filtros opcionales")
 credit_order = ['🔵 Premium Credit', '🟢 Basic Credit', '🟡 Moderate Risk', '🔴 High Risk']
@@ -51,7 +59,7 @@ user_input = st.sidebar.text_input("👤 Ingresar usuario exacto")
 search_user = st.sidebar.button("Buscar usuario")
 
 # Filtrar DataFrame
-filtered_df = df[df['credit_score'].isin(selected_scores)]
+filtered_df = df[df['credit_score'].isin(selected_scores)].copy()
 
 # Mostrar tabla de clientes
 table_cols = [
@@ -82,16 +90,6 @@ if selected_scores:
     fig.update_layout(showlegend=False, height=400)
     fig.update_traces(textposition='outside')
     st.plotly_chart(fig, use_container_width=True)
-
-# Preparar binned purchases globalmente
-purchase_labels = ["0", "1", "2", "3", "4", "5 o más"]
-purchase_bins = [0, 1, 2, 3, 4, 5, np.inf]
-df['compras_binned'] = pd.cut(
-    df['avg_purchases_per_week'],
-    bins=purchase_bins,
-    labels=purchase_labels,
-    right=False
-)
 
 # Análisis financiero por tipo de Credit Score
 st.subheader("📊 Análisis Financiero por Credit Score")
@@ -156,13 +154,11 @@ if search_user and user_input:
         st.warning("Usuario no encontrado.")
     else:
         st.markdown(f"## 📌 Detalles del usuario `{user_input}`")
-        # Primer fila de métricas
         m1, m2, m3 = st.columns(3)
         m1.metric("Edad", int(user_df['age'].iloc[0]))
         m2.metric("Índice", int(user_df['index'].iloc[0]))
         m3.metric("Credit Score", user_df['credit_score'].iloc[0])
 
-        # Segunda fila de métricas
         m4, m5, m6 = st.columns(3)
         m4.metric("Retiros promedio", f"${user_df['avg_amount_withdrawals'].iloc[0]:,.2f}")
         m5.metric("Compras x semana", user_df['avg_purchases_per_week'].iloc[0])
