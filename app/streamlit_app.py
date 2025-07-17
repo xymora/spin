@@ -69,8 +69,8 @@ clear = st.sidebar.button("Borrar")
 
 # Lógica de borrado de detalles
 if clear:
-    st.session_state.user_input = ""
-    # opcional: desactivar búsqueda previa
+    st.session_state["user_input"] = ""
+    # No ejecutar búsqueda tras borrar
     search = False
 
 # Filtrar DataFrame
