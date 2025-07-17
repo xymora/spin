@@ -26,7 +26,7 @@ if df.empty:
     st.stop()
 
 # =====================
-# Clasificación de Crédito
+# Credit Score Classification
 # =====================
 def clasificar_credito(retiros, compras):
     if retiros > 50000 and compras == 0:
@@ -60,7 +60,7 @@ with st.sidebar:
         rango_compras = st.slider("Compras por Semana", float(compras_min), float(compras_max), (float(compras_min), float(compras_max)))
 
         tipos_credito = df['credit_score'].unique().tolist()
-        tipos_seleccionados = st.multiselect("Clasificación Crediticia", sorted(tipos_credito), default=tipos_credito)
+        tipos_seleccionados = st.multiselect("credit_score", sorted(tipos_credito), default=tipos_credito)
 
 # =====================
 # Aplicar filtros
