@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import plotly.express as px
 
 st.set_page_config(page_title="Dashboard de Clientes Bancarios", layout="wide")
 st.title("🏦 Dashboard de Clientes Bancarios")
@@ -26,20 +27,20 @@ if df.empty:
     st.stop()
 
 # =====================
-# Calificación crediticia
+# Clasificación crediticia
 # =====================
-def clasificar_credito(retiros, compras):
-    if retiros > 50000 and compras == 0:
+def classify_credit(withdrawals, purchases):
+    if withdrawals > 50000 and purchases == 0:
         return '🔵 Premium Credit'
-    elif retiros > 20000 and compras <= 1:
+    elif withdrawals > 20000 and purchases <= 1:
         return '🟢 Basic Credit'
-    elif retiros > 10000:
+    elif withdrawals > 10000:
         return '🟡 Moderate Risk'
     else:
         return '🔴 High Risk'
 
 df['credit_score'] = df.apply(
-    lambda row: clasificar_credito(row['avg_amount_withdrawals'], row['avg_purchases_per_week']),
+    lambda row: classify_credit(row['avg_amount_withdrawals'], row['avg_purchases_per_week']),
     axis=1
 )
 
@@ -47,38 +48,38 @@ df['credit_score'] = df.apply(
 # Filtros laterales
 # =====================
 with st.sidebar:
-    st.header("🔍 Filtros Opcionales")
-    aplicar_filtros = st.checkbox("Aplicar filtros", value=False)
+    st.header("🔍 Filtros opcionales")
+    apply_filters = st.checkbox("Aplicar filtros", value=False)
 
-    if aplicar_filtros:
+    if apply_filters:
         edad_min, edad_max = int(df['age'].min()), int(df['age'].max())
         retiro_min, retiro_max = df['avg_amount_withdrawals'].min(), df['avg_amount_withdrawals'].max()
         compra_min, compra_max = df['avg_purchases_per_week'].min(), df['avg_purchases_per_week'].max()
 
-        edad = st.slider("Edad", edad_min, edad_max, (edad_min, edad_max))
-        retiros = st.slider("Retiros promedio", float(retiro_min), float(retiro_max), (float(retiro_min), float(retiro_max)))
-        compras = st.slider("Compras por semana", float(compra_min), float(compra_max), (float(compra_min), float(compra_max)))
+        edad_range = st.slider("Edad", edad_min, edad_max, (edad_min, edad_max))
+        retiro_range = st.slider("Retiros promedio", float(retiro_min), float(retiro_max), (float(retiro_min), float(retiro_max)))
+        compra_range = st.slider("Compras por semana", float(compra_min), float(compra_max), (float(compra_min), float(compra_max)))
 
-        tipos_credito = df['credit_score'].unique().tolist()
-        tipos_seleccionados = st.multiselect("Credit Score", sorted(tipos_credito), default=tipos_credito)
+        credit_types = df['credit_score'].unique().tolist()
+        selected_types = st.multiselect("Credit Score", sorted(credit_types), default=credit_types)
 
 # =====================
 # Aplicar filtros
 # =====================
-if aplicar_filtros:
-    df_filtrado = df[
-        (df['age'].between(*edad)) &
-        (df['avg_amount_withdrawals'].between(*retiros)) &
-        (df['avg_purchases_per_week'].between(*compras)) &
-        (df['credit_score'].isin(tipos_seleccionados))
+if apply_filters:
+    df_filtered = df[
+        (df['age'].between(*edad_range)) &
+        (df['avg_amount_withdrawals'].between(*retiro_range)) &
+        (df['avg_purchases_per_week'].between(*compra_range)) &
+        (df['credit_score'].isin(selected_types))
     ]
 else:
-    df_filtrado = df.copy()
+    df_filtered = df.copy()
 
 # =====================
 # Reordenar columnas
 # =====================
-primeras_columnas = [
+first_cols = [
     'user',
     'age',
     'index',
@@ -89,13 +90,38 @@ primeras_columnas = [
     'creation_date',
     'avg_amount_withdrawals'
 ]
-otras_columnas = sorted([col for col in df_filtrado.columns if col not in primeras_columnas])
-columnas_finales = primeras_columnas + otras_columnas
-df_mostrar = df_filtrado[columnas_finales]
+other_cols = sorted([col for col in df_filtered.columns if col not in first_cols])
+final_cols = first_cols + other_cols
+df_display = df_filtered[final_cols]
 
 # =====================
 # Mostrar datos
 # =====================
-st.subheader("📋 Clientes Visualizados")
-st.dataframe(df_mostrar, use_container_width=True)
-st.markdown(f"🔎 Total mostrados: **{len(df_mostrar):,}** / 100,000")
+st.subheader("📋 Clientes mostrados")
+st.dataframe(df_display, use_container_width=True)
+st.markdown(f"🔎 Total mostrados: **{len(df_display):,}** / 100,000")
+
+# =====================
+# Gráfica Credit Score
+# =====================
+if apply_filters and selected_types:
+    count_by_score = df_filtered['credit_score'].value_counts().reset_index()
+    count_by_score.columns = ['credit_score', 'count']
+
+    fig = px.bar(
+        count_by_score,
+        x='credit_score',
+        y='count',
+        color='credit_score',
+        text='count',
+        title='Distribución de clientes por tipo de Credit Score',
+        color_discrete_sequence=["red", "gold", "green", "blue"]
+    )
+    fig.update_traces(textposition='outside')
+    fig.update_layout(
+        xaxis_title="Credit Score",
+        yaxis_title="Cantidad de Clientes",
+        showlegend=False
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
