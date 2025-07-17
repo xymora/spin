@@ -26,19 +26,18 @@ def load_data():
         except:
             pass
     try:
-        return pd.read_csv("notebooks/segmentation_data_recruitment.csv")
+        url = "https://covenantaegis.com/segmentation_data_recruitment.csv"
+        return pd.read_csv(url)
     except:
         st.error("No se pudo cargar los datos.")
         return pd.DataFrame()
 
-def clasificar_cliente(cliente):
-    ingreso = cliente.get('ingreso_mensual', 0)
-    pagos = cliente.get('pagos_morosos', 0)
+def clasificar_riesgo(ingreso, pagos):
     try:
         ingreso = float(ingreso)
         pagos = int(pagos)
     except:
-        return '🔴 Información incompleta'
+        return '❓ No evaluado'
 
     if ingreso > 50000 and pagos == 0:
         return '🔵 Crédito Premium'
@@ -68,12 +67,11 @@ else:
     for col, selected in filters.items():
         filtered_df = filtered_df[filtered_df[col].isin(selected)]
 
-    # Aplicar clasificación
-    if 'ingreso_mensual' in filtered_df.columns and 'pagos_morosos' in filtered_df.columns:
-        filtered_df['segmento'] = filtered_df.apply(clasificar_cliente, axis=1)
-    else:
-        st.error("Faltan las columnas necesarias: 'ingreso_mensual' y/o 'pagos_morosos'.")
+    if 'ingreso_mensual' in filtered_df.columns and 'pagos_atrasados' in filtered_df.columns:
+        filtered_df['riesgo_crediticio'] = filtered_df.apply(
+            lambda row: clasificar_riesgo(row['ingreso_mensual'], row['pagos_atrasados']), axis=1
+        )
 
-    st.subheader("📋 Clientes filtrados y clasificados")
+    st.subheader("📋 Clientes filtrados")
     st.dataframe(filtered_df)
     st.markdown(f"🔎 Total encontrados: **{len(filtered_df)}**")
