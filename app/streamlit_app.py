@@ -154,15 +154,17 @@ if search_user and user_input:
         st.warning("Usuario no encontrado.")
     else:
         st.markdown(f"## 📌 Detalles del usuario `{user_input}`")
+        # Primera fila de métricas
         m1, m2, m3 = st.columns(3)
         m1.metric("Edad", int(user_df['age'].iloc[0]))
         m2.metric("Índice", int(user_df['index'].iloc[0]))
         m3.metric("Credit Score", user_df['credit_score'].iloc[0])
 
+        # Segunda fila de métricas (sin repetir credit_score)
         m4, m5, m6 = st.columns(3)
         m4.metric("Retiros promedio", f"${user_df['avg_amount_withdrawals'].iloc[0]:,.2f}")
-        m5.metric("Compras x semana", user_df['avg_purchases_per_week'].iloc[0])
-        m6.metric("Historial crediticio", user_df['credit_score'].iloc[0])
+        m5.metric("Compras x semana", round(user_df['avg_purchases_per_week'].iloc[0], 2))
+        m6.metric("Tipo de usuario", user_df['user_type'].iloc[0])
 
         st.markdown("### 📈 Gráficas personales")
         r1c1, r1c2 = st.columns(2)
