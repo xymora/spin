@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import plotly.graph_objects as go
+from scipy.stats import gaussian_kde
 
 st.set_page_config(page_title="Dashboard de Clientes Bancarios", layout="wide")
 st.title("🏦 Dashboard de Clientes Bancarios")
@@ -135,6 +137,21 @@ if seleccionados:
             st.plotly_chart(fig2, use_container_width=True)
 
         with col3:
-            fig3 = px.histogram(sub_df, x='age', nbins=20, title="Distribución de Edad")
-            fig3.update_layout(height=250)
-            st.plotly_chart(fig3, use_container_width=True)
+            # KDE - Distribución Gaussiana de Edad
+            x_age = sub_df['age'].dropna()
+            if len(x_age) > 1:
+                kde = gaussian_kde(x_age)
+                x_vals = np.linspace(x_age.min(), x_age.max(), 200)
+                y_vals = kde(x_vals)
+                fig3 = go.Figure()
+                fig3.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines', fill='tozeroy',
+                                          line=dict(color='royalblue'), name='Densidad'))
+                fig3.update_layout(
+                    title="Edad (Distribución Gaussiana)",
+                    xaxis_title="Edad",
+                    yaxis_title="Densidad estimada",
+                    height=250
+                )
+                st.plotly_chart(fig3, use_container_width=True)
+            else:
+                st.warning("⚠️ No hay suficientes datos de edad para calcular la curva.")
