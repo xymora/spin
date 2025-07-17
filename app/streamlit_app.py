@@ -141,25 +141,30 @@ cols[4].metric("Ratio Retiro/Compra", f"{avgs['withdrawal_to_purchase_ratio']:.2
 cols[5].metric("Activity Score", f"{avgs['activity_score']:.2f}")
 
 # --------------------------------------
-# 6. Filtros Avanzados Sidebar
+# 6. Filtros Sidebar y Búsqueda de Usuario
 # --------------------------------------
-st.sidebar.header("🔍 Filtros y Segmentación")
-with st.sidebar.expander("Configuración de filtros"):
-    credit_order = ['🔵 Premium Credit','🟢 Basic Credit','🟡 Moderate Risk','🔴 High Risk']
-    selected_scores = st.multiselect(
-        "Credit Score", credit_order, default=credit_order
-    )
-    age_min, age_max = st.slider(
-        "Rango de Edad", int(df['age'].min()), int(df['age'].max()),
-        (int(df['age'].min()), int(df['age'].max()))
-    )
-    score_min, score_max = st.slider(
-        "Rango Activity Score", float(df['activity_score'].min()), float(df['activity_score'].max()),
-        (float(df['activity_score'].min()), float(df['activity_score'].max()))
-    )
-    n_clusters = st.selectbox("Número de Clusters (K-Means)", [2,3,4,5,6,7], index=2)
+st.sidebar.header("🔍 Filtros y Búsqueda")
+# Filtro por Credit Score
+credit_order = ['🔵 Premium Credit','🟢 Basic Credit','🟡 Moderate Risk','🔴 High Risk']
+selected_scores = st.sidebar.multiselect(
+    "Credit Score", credit_order, default=credit_order
+)
+# Búsqueda de usuario exacto
+def clear_search():
+    st.session_state.pop('user_search', None)
+    st.session_state.pop('search_active', None)
+st.sidebar.text_input(
+    "👤 Buscar usuario exacto", key="user_search"
+)
+bus_btn, clr_btn = st.sidebar.columns(2)
+with bus_btn:
+    if st.button("Buscar Usuario"):
+        st.session_state.search_active = True
+with clr_btn:
+    if st.button("Borrar Búsqueda"):
+        clear_search()
 
-# Aplicar filtros
+# Aplicar filtros basados en Credit Score solamente
 mask = (
     df['credit_score'].isin(selected_scores) &
     df['age'].between(age_min, age_max) &
