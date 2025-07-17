@@ -81,8 +81,8 @@ def clear_search():
     st.session_state['user_search'] = ''
     st.session_state['search_active'] = False
 
-search_clicked = st.sidebar.button("Buscar Usuario")
-clear_clicked = st.sidebar.button("Borrar Búsqueda", on_click=clear_search)
+search_clicked = st.sidebar.button("Buscar")
+clear_clicked = st.sidebar.button("Borrar", on_click=clear_search)
 
 if search_clicked:
     st.session_state['search_active'] = True
