@@ -181,15 +181,8 @@ if st.session_state['search_active'] and st.session_state['user_search'] and len
     st.plotly_chart(fig5, use_container_width=True)
 
 # Botón exportar
-    g1, g2 = st.columns(2)
-    g3, g4 = st.columns(2)
-    g1.plotly_chart(fig1, use_container_width=True)
-    g2.plotly_chart(fig2, use_container_width=True)
-    g3.plotly_chart(fig3, use_container_width=True)
-    g4.plotly_chart(fig4, use_container_width=True)
-    st.plotly_chart(fig5, use_container_width=True)
-
-# Botón exportar("💾 Descargar CSV", data=csv, file_name='clientes_filtrados.csv')
+csv = df_filtered.to_csv(index=False).encode('utf-8')
+st.download_button("💾 Descargar CSV", data=csv, file_name='clientes_filtrados.csv')
 
 # ====================================
 # Gráficas
