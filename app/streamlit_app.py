@@ -4,7 +4,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from scipy.stats import gaussian_kde
-from sklearn.cluster import KMeans import KMeans
+from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 import logging
 
@@ -142,7 +142,14 @@ if not df_filtered.empty:
     other_cols = sorted([c for c in df_filtered.columns if c not in base_cols])
     st.dataframe(df_filtered[base_cols+other_cols], use_container_width=True)
 else:
-    st.warning("No hay clientes para mostrar con los filtros actuales.")("💾 Descargar CSV", data=csv, file_name='clientes_filtrados.csv')
+    st.warning("No hay clientes para mostrar con los filtros actuales.")
+
+# Botón de descarga CSV
+csv = df_filtered.to_csv(index=False).encode('utf-8')
+st.download_button("💾 Descargar CSV", data=csv, file_name='clientes_filtrados.csv')
+
+# ====================================
+# Gráficas"No hay clientes para mostrar con los filtros actuales.")("💾 Descargar CSV", data=csv, file_name='clientes_filtrados.csv')
 
 # ====================================
 # Gráficas
