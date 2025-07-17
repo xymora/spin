@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-import plotly.graph_objects as go
 from scipy.stats import gaussian_kde
 
 st.set_page_config(page_title="Dashboard de Clientes Bancarios", layout="wide")
@@ -111,47 +110,30 @@ if seleccionados:
 
         col1, col2, col3 = st.columns(3)
 
+        # RETIROS PROMEDIO (gráfica de línea)
         with col1:
-            fig1 = go.Figure()
-            fig1.add_trace(go.Scatter(
-                y=np.histogram(sub_df['avg_amount_withdrawals'], bins=30)[0],
-                mode='lines+markers',
-                line=dict(color='blue')
-            ))
-            fig1.update_layout(
-                title="Retiros Promedio",
-                height=250,
-                xaxis_title='Bins',
-                yaxis_title='Frecuencia'
-            )
+            line_df = sub_df[['avg_amount_withdrawals']].copy()
+            line_df['index'] = np.arange(len(line_df))
+            fig1 = px.line(line_df, x='index', y='avg_amount_withdrawals', title="Retiros Promedio")
+            fig1.update_layout(height=250)
             st.plotly_chart(fig1, use_container_width=True)
 
+        # COMPRAS POR SEMANA (gráfica de pastel)
         with col2:
-            # Agrupar las compras por semana en rangos para gráfico de pastel
-            bins = [0, 1, 3, 5, 10, 50]
-            labels = ['0-1', '1-3', '3-5', '5-10', '10+']
-            compras = pd.cut(sub_df['avg_purchases_per_week'], bins=bins + [np.inf], labels=labels, right=False)
+            bins = [0, 1, 3, 5, 10, 50, np.inf]
+            labels = ['0-1', '1-3', '3-5', '5-10', '10-50', '50+']
+            compras = pd.cut(sub_df['avg_purchases_per_week'], bins=bins, labels=labels, right=False)
             compras_freq = compras.value_counts().sort_index().reset_index()
             compras_freq.columns = ['rango', 'count']
-            fig2 = px.pie(
-                compras_freq,
-                names='rango',
-                values='count',
-                title="Compras por Semana"
-            )
+            fig2 = px.pie(compras_freq, names='rango', values='count', title="Compras por Semana")
             st.plotly_chart(fig2, use_container_width=True)
 
+        # DISTRIBUCIÓN DE EDAD (campana de Gauss)
         with col3:
             edades = sub_df['age'].dropna()
             kde = gaussian_kde(edades)
             x_vals = np.linspace(edades.min(), edades.max(), 200)
             y_vals = kde(x_vals)
-            fig3 = go.Figure()
-            fig3.add_trace(go.Scatter(x=x_vals, y=y_vals, mode='lines', fill='tozeroy'))
-            fig3.update_layout(
-                title="Distribución de Edad",
-                height=250,
-                xaxis_title='Edad',
-                yaxis_title='Densidad'
-            )
+            fig3 = px.area(x=x_vals, y=y_vals, title="Distribución de Edad")
+            fig3.update_layout(height=250, xaxis_title="Edad", yaxis_title="Densidad")
             st.plotly_chart(fig3, use_container_width=True)
