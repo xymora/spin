@@ -96,6 +96,7 @@ if seleccionados:
         conteo,
         x='credit_score', y='count',
         color='credit_score', text='count',
+        title="Distribución de clientes por tipo de crédito",
         color_discrete_sequence=["blue", "green", "gold", "red"]
     )
     fig.update_layout(showlegend=False, height=400)
@@ -109,8 +110,9 @@ if seleccionados:
 
         col1, col2, col3 = st.columns(3)
 
-        # Retiros promedio (gráfica de línea)
+        # Retiros promedio (línea)
         with col1:
+            st.caption("Promedio de retiros por cliente")
             retiros = sub_df['avg_amount_withdrawals']
             line_df = pd.DataFrame({'retiros': retiros})
             line_df['index'] = np.arange(len(line_df))
@@ -118,8 +120,9 @@ if seleccionados:
             fig1.update_layout(height=250, showlegend=False)
             st.plotly_chart(fig1, use_container_width=True)
 
-        # Compras por semana (barras separadas)
+        # Compras por semana (barras)
         with col2:
+            st.caption("Distribución de compras por semana")
             bins = [0, 1, 2, 3, 5, 10, np.inf]
             labels = ['0', '1', '2', '3-4', '5-9', '10+']
             compras_categ = pd.cut(
@@ -142,8 +145,9 @@ if seleccionados:
             fig2.update_traces(textposition='outside')
             st.plotly_chart(fig2, use_container_width=True)
 
-        # Distribución de edad (curva tipo Gauss)
+        # Distribución de edad (curva Gauss)
         with col3:
+            st.caption("Distribución de edad de los clientes")
             x = sub_df['age'].dropna()
             kde = gaussian_kde(x)
             x_grid = np.linspace(x.min(), x.max(), 200)
