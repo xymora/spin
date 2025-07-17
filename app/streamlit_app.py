@@ -117,11 +117,14 @@ if seleccionados:
                 sub_df['avg_purchases_per_week'], bins=compras_bins, labels=compras_labels, right=False
             )
             compras_counts = sub_df['compras_binned'].value_counts().sort_index()
-            fig2 = px.pie(
-                names=compras_counts.index, values=compras_counts.values,
-                title="Compras promedio por semana"
+            fig2 = px.bar(
+                x=compras_counts.index.astype(str),
+                y=compras_counts.values,
+                labels={'x': 'Compras por semana', 'y': 'Cantidad'},
+                text=compras_counts.values
             )
-            fig2.update_layout(height=250)
+            fig2.update_layout(title="Compras promedio por semana", height=250)
+            fig2.update_traces(textposition='outside')
             st.plotly_chart(fig2, use_container_width=True)
 
         with col3:
