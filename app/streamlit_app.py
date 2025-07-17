@@ -5,313 +5,174 @@ import plotly.express as px
 import plotly.graph_objects as go
 from scipy.stats import gaussian_kde
 from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
-from sklearn.metrics import (
-    classification_report, confusion_matrix, roc_curve, auc,
-    silhouette_score, precision_recall_curve
-)
+from sklearn.preprocessing import StandardScaler
 
-# Imports para logging y control de tiempo
-import logging
-import time
-# Intentar importar seaborn para estadísticas visuales
-try:
-    import seaborn as sns
-except ImportError:
-    sns = None
-    logging.warning('Seaborn no está instalado: algunas gráficas avanzadas no estarán disponibles')
-# Intentar importar matplotlib para gráficos si seaborn falla
-try:
-    import matplotlib.pyplot as plt
-except ImportError:
-    plt = None
-    logging.warning('Matplotlib no está instalado: algunas funciones de visualización no estarán disponibles')
+# Configuración de la página
+st.set_page_config(page_title="Dashboard de Clientes Bancarios", layout="wide")
+st.title("🏦 Dashboard de Clientes Bancarios")
 
-# ======================================
-# Dashboard Senior Data Science - 300+ Lines
-# ======================================
+DATA_URL = "https://covenantaegis.com/segmentation_data_recruitment.csv"
 
-# --------------------------------------
-# 1. Configuración Global de Streamlit
-# --------------------------------------
-st.set_page_config(
-    page_title="Dashboard Clientes Bancarios | DS Senior",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-st.markdown(
+@st.cache_data(show_spinner=False)
+def load_data(url: str) -> pd.DataFrame:
     """
-    <style>
-        .css-1d391kg {padding-top: 1rem;}
-        .css-18ni7ap h1 {font-size:2.5rem; color: #003366;}
-        .stButton>button {width: 100%;}
-        .stDownloadButton>button {background-color: #004C99; color: white;}
-    </style>
-    """, unsafe_allow_html=True
-)
-st.title("🏦 Dashboard Clientes Bancarios | Data Science Senior")
-
-# --------------------------------------
-# 2. Logging para seguimiento de errores
-# --------------------------------------
-logging.basicConfig(
-    format='%(asctime)s %(levelname)s:%(message)s',
-    level=logging.INFO,
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
-logger = logging.getLogger(__name__)
-
-# --------------------------------------
-# 3. Funciones Auxiliares
-# --------------------------------------
-def timer(func):
-    """Decorator para medir tiempo de ejecución de funciones."""
-    def wrapper(*args, **kwargs):
-        start = time.time()
-        result = func(*args, **kwargs)
-        end = time.time()
-        logger.info(f"{func.__name__} ejecutada en {end-start:.2f}s")
-        return result
-    return wrapper
-
-@timer
-def load_and_preprocess(url: str) -> pd.DataFrame:
-    """
-    Carga el dataset, convierte tipos y genera nuevas variables.
+    Carga y formatea el DataFrame desde la URL.
+    Convierte columnas clave a numérico y rellena NA con 0.
+    Detecta y convierte columnas de depósito si existen.
     """
     df = pd.read_csv(url)
-    # Conversión de tipos numéricos
-    numeric_cols = [c for c in df.columns if c.startswith('avg_') or 'age' in c or 'index' in c]
-    for col in numeric_cols:
+    for col in ['avg_amount_withdrawals', 'avg_purchases_per_week']:
         df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-    
-    # Crear variables adicionales
-    if 'avg_amount_purchases' in df.columns:
-        df['withdrawal_to_purchase_ratio'] = (
-            df['avg_amount_withdrawals'] /
-            (df['avg_amount_purchases'] + 1)
-        )
-    else:
-        df['withdrawal_to_purchase_ratio'] = df['avg_amount_withdrawals']
+    return df
 
-    df['activity_score'] = (
-        df['avg_purchases_per_week'] * 0.6 + df['avg_amount_withdrawals'] / 10000 * 0.4
-    )
+# Cargar datos
+try:
+    df = load_data(DATA_URL)
+except Exception as e:
+    st.error(f"Error al cargar datos: {e}")
+    st.stop()
 
-    # Clasificación crediticia
+# Clasificación crediticia
+def classify_credit(df: pd.DataFrame) -> pd.DataFrame:
     conditions = [
         (df['avg_amount_withdrawals'] > 50000) & (df['avg_purchases_per_week'] == 0),
         (df['avg_amount_withdrawals'] > 20000) & (df['avg_purchases_per_week'] <= 1),
         (df['avg_amount_withdrawals'] > 10000)
     ]
-    choices = ['🔵 Premium Credit','🟢 Basic Credit','🟡 Moderate Risk']
+    choices = ['🔵 Premium Credit', '🟢 Basic Credit', '🟡 Moderate Risk']
     df['credit_score'] = np.select(conditions, choices, default='🔴 High Risk')
-
-    # Binning de compras semanales
-    df['compras_binned'] = pd.cut(
-        df['avg_purchases_per_week'], bins=[0,1,2,3,4,5,np.inf],
-        labels=["0","1","2","3","4","5+"], right=False
-    )
     return df
 
-# --------------------------------------
-# 4. Cargar Datos
-# --------------------------------------
-DATA_URL = "https://covenantaegis.com/segmentation_data_recruitment.csv"
-df = load_and_preprocess(DATA_URL)
-if df.empty:
-    st.error("❌ Error al cargar datos.")
-    st.stop()
-logger.info(f"Datos cargados: {len(df)} registros")
+df = classify_credit(df)
 
-# --------------------------------------
-# 5. KPIs Generales
-# --------------------------------------
-st.header("📊 KPIs Generales del Dataset")
-total_clients = len(df)
-avgs = df[['avg_amount_withdrawals','avg_amount_purchases','avg_purchases_per_week','age','withdrawal_to_purchase_ratio','activity_score']].mean()
-cols = st.columns(6)
-cols[0].metric("Total Clientes", f"{total_clients:,}")
-cols[1].metric("Retiro Medio", f"${avgs['avg_amount_withdrawals']:,.0f}")
-cols[2].metric("Compra Media", f"${avgs['avg_amount_purchases']:,.0f}")
-cols[3].metric("Compras/Semana", f"{avgs['avg_purchases_per_week']:.2f}")
-cols[4].metric("Ratio Retiro/Compra", f"{avgs['withdrawal_to_purchase_ratio']:.2f}")
-cols[5].metric("Activity Score", f"{avgs['activity_score']:.2f}")
+# Preparar categorías de compras antes de filtrar
+df['compras_binned'] = pd.cut(
+    df['avg_purchases_per_week'],
+    bins=[0, 1, 2, 3, 4, 5, np.inf],
+    labels=["0", "1", "2", "3", "4", "5 o más"],
+    right=False
+)
 
-# --------------------------------------
-# 6. Filtros Sidebar y Búsqueda de Usuario
-# --------------------------------------
+# Sidebar - filtros y búsqueda de usuario
 st.sidebar.header("🔍 Filtros y Búsqueda")
-# Filtro por Credit Score
-credit_order = ['🔵 Premium Credit','🟢 Basic Credit','🟡 Moderate Risk','🔴 High Risk']
+
+# Filtro por tipo de crédito
+credit_order = ['🔵 Premium Credit', '🟢 Basic Credit', '🟡 Moderate Risk', '🔴 High Risk']
+available_scores = [c for c in credit_order if c in df['credit_score'].unique()]
 selected_scores = st.sidebar.multiselect(
-    "Credit Score", credit_order, default=credit_order
+    "Credit Score", available_scores, default=available_scores
 )
-# Búsqueda de usuario exacto
-def clear_search():
-    st.session_state.pop('user_search', None)
-    st.session_state.pop('search_active', None)
+
+# Búsqueda de usuario
+if 'user_search' not in st.session_state:
+    st.session_state.user_search = ''
+if 'search_active' not in st.session_state:
+    st.session_state.search_active = False
+
 st.sidebar.text_input(
-    "👤 Buscar usuario exacto", key="user_search"
+    "👤 Usuario exacto:", key='user_search'
 )
-bus_btn, clr_btn = st.sidebar.columns(2)
-with bus_btn:
+buscar, borrar = st.sidebar.columns(2)
+with buscar:
     if st.button("Buscar Usuario"):
         st.session_state.search_active = True
-with clr_btn:
+with borrar:
     if st.button("Borrar Búsqueda"):
-        clear_search()
+        st.session_state.user_search = ''
+        st.session_state.search_active = False
 
-# Aplicar filtros basados en Credit Score solamente
-mask = df['credit_score'].isin(selected_scores)
-df_filtered = df[mask].reset_index(drop=True)
-# Si hay búsqueda de usuario activa, filtrar únicamente ese usuario
-given_user = st.session_state.get('user_search', '')
-if st.session_state.get('search_active', False) and given_user:
-    df_filtered = df_filtered[df_filtered['user'] == given_user]
+# Filtrar DataFrame por credit score
+df_filtered = df[df['credit_score'].isin(selected_scores)].copy()
+# Si hay búsqueda de usuario activa, filtrar por ese usuario
+if st.session_state.search_active and st.session_state.user_search:
+    df_filtered = df_filtered[df_filtered['user'] == st.session_state.user_search]
 
-st.markdown(f'Filtrados: **{len(df_filtered):,}** de {total_clients:,} clientes')(f"Filtrados: **{len(df_filtered):,}** de {total_clients:,} clientes")
+# Mostrar conteo de filtrados
+total_clients = len(df)
+st.markdown(f"Filtrados: **{len(df_filtered):,}** de **{total_clients:,}** clientes")
 
 # --------------------------------------
-# 7. Vista de Datos
+# Vista de tabla de clientes
 # --------------------------------------
 st.subheader("📋 Clientes mostrados")
-# Restaurar tabla de clientes
 if not df_filtered.empty:
-    table_cols = ['user', 'age', 'index', 'credit_score', 'user_type',
-                  'registration_channel', 'creation_flow', 'creation_date', 'avg_amount_withdrawals']
+    base_cols = [
+        'user', 'age', 'index', 'credit_score',
+        'user_type', 'registration_channel', 'creation_flow', 'creation_date',
+        'avg_amount_withdrawals'
+    ]
     deposit_cols = [c for c in df_filtered.columns if 'deposit' in c.lower()]
     for d in deposit_cols:
-        if d not in table_cols:
-            table_cols.append(d)
-    other_cols = sorted([c for c in df_filtered.columns if c not in table_cols])
-    df_display = df_filtered[table_cols + other_cols]
-    st.dataframe(df_display, use_container_width=True)
-    st.markdown(f"🔎 Total mostrados: **{len(df_display):,}** / {total_clients:,}")
+        if d not in base_cols:
+            base_cols.append(d)
+    other_cols = sorted([c for c in df_filtered.columns if c not in base_cols])
+    display_cols = base_cols + other_cols
+    st.dataframe(df_filtered[display_cols], use_container_width=True)
 else:
     st.warning("No hay clientes para mostrar con los filtros actuales.")
 
 # --------------------------------------
-# 8. Visualizaciones Avanzadas
-st.subheader("📋 Vista de Tabla Filtrada")
-styled_df = df_filtered.style.format({
-    'avg_amount_withdrawals':'${:,.0f}',
-    'avg_amount_purchases':'${:,.0f}',
-    'avg_purchases_per_week':'{:.2f}',
-    'withdrawal_to_purchase_ratio':'{:.2f}',
-    'activity_score':'{:.2f}'
-})
-st.write(styled_df)
+# Gráfica de distribución por Credit Score
+# --------------------------------------
+if selected_scores:
+    count_df = (
+        df_filtered['credit_score']
+        .value_counts()
+        .reindex(credit_order, fill_value=0)
+        .reset_index()
+    )
+    count_df.columns = ['credit_score', 'count']
+    fig = px.bar(
+        count_df, x='credit_score', y='count', color='credit_score', text='count',
+        title="Distribución de clientes por Credit Score"
+    )
+    fig.update_layout(showlegend=False, height=400)
+    fig.update_traces(textposition='outside')
+    st.plotly_chart(fig, use_container_width=True)
 
 # --------------------------------------
-# 8. Visualizaciones Avanzadas
+# Análisis financiero por tipo de Credit Score
 # --------------------------------------
-st.subheader("📈 Visualizaciones Avanzadas")
-# Boxplot
-fig_box = px.box(
-    df_filtered, x='credit_score', y='avg_amount_withdrawals',
-    color='credit_score', title='Boxplot Retiros por Credit Score'
-)
-st.plotly_chart(fig_box, use_container_width=True)
+st.subheader("📊 Análisis Financiero por Credit Score")
+for score in selected_scores:
+    sub = df_filtered[df_filtered['credit_score'] == score]
+    if not sub.empty:
+        st.markdown(f"### {score}")
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            fig1 = px.line(
+                sub.sort_values('avg_amount_withdrawals'),
+                y='avg_amount_withdrawals', title="Retiros promedio", height=250
+            )
+            st.plotly_chart(fig1, use_container_width=True)
+        with c2:
+            counts = sub['compras_binned'].value_counts().sort_index()
+            fig2 = px.bar(
+                x=counts.index.astype(str), y=counts.values,
+                labels={'x':'Compras/semana','y':'Cantidad'}, text=counts.values,
+                title="Compras promedio por semana", height=250
+            )
+            fig2.update_traces(textposition='outside')
+            st.plotly_chart(fig2, use_container_width=True)
+        with c3:
+            kde = gaussian_kde(sub['age'])
+            x_vals = np.linspace(sub['age'].min(), sub['age'].max(), 100)
+            y_vals = kde(x_vals)
+            fig3 = px.area(x=x_vals, y=y_vals, title="Distribución de edad", height=250)
+            st.plotly_chart(fig3, use_container_width=True)
 
-# Elbow Method para K-Means
-st.markdown("**Análisis de Codo (Elbow Method) para K-Means**")
-inertia = []
-K = range(1,11)
-for k in K:
-    km = KMeans(n_clusters=k, random_state=42)
-    km.fit(df_filtered[['avg_amount_withdrawals','avg_amount_purchases','age','activity_score']])
-    inertia.append(km.inertia_)
-fig_elbow = px.line(
-    x=list(K), y=inertia, markers=True,
-    labels={'x':'Número de Clusters','y':'Inercia'},
-    title='Elbow Method'
-)
-st.plotly_chart(fig_elbow, use_container_width=True)
-
-# Clustering K-Means Dinámico
-st.subheader(f"🤖 Clustering K-Means (K={n_clusters})")
-km = KMeans(n_clusters=n_clusters, random_state=42)
-df_filtered['cluster'] = km.fit_predict(df_filtered[['avg_amount_withdrawals','avg_amount_purchases','age','activity_score']])
+# --------------------------------------
+# K-Means (constante K=4)
+# --------------------------------------
+st.subheader("🤖 Agrupamiento Inteligente (K-Means)")
+K = 4
+features = ['avg_amount_withdrawals', 'avg_purchases_per_week', 'age']
+scaled = StandardScaler().fit_transform(df[features])
+kmeans = KMeans(n_clusters=K, random_state=42)
+clusters = kmeans.fit_predict(scaled)
+df['cluster'] = clusters
 fig_cluster = px.scatter_3d(
-    df_filtered, x='avg_amount_withdrawals', y='avg_amount_purchases', z='age',
-    color='cluster', title='Clustering 3D', height=600
+    df, x='avg_amount_withdrawals', y='avg_purchases_per_week', z='age',
+    color='cluster', title=f"Agrupamiento K-Means (K={K})", height=500
 )
 st.plotly_chart(fig_cluster, use_container_width=True)
-
-# Silhouette Score
-st.markdown("**Silhouette Score:**")
-if n_clusters > 1:
-    score = silhouette_score(df_filtered[['avg_amount_withdrawals','avg_amount_purchases','age','activity_score']], df_filtered['cluster'])
-    st.write(f"Silhouette Score para K={n_clusters}: {score:.2f}")
-else:
-    st.warning("No se puede calcular Silhouette Score para un cluster (K=1)")
-
-# --------------------------------------
-# 9. Modelado Predictivo
-# --------------------------------------
-st.subheader("🤖 Modelado Predictivo: Credit Score")
-# Preparar datos de entrenamiento
-def encode_scores(df):
-    mapping = {'🔵 Premium Credit':0, '🟢 Basic Credit':1, '🟡 Moderate Risk':2, '🔴 High Risk':3}
-    return df['credit_score'].map(mapping)
-
-y = encode_scores(df_filtered)
-X = df_filtered[['avg_amount_withdrawals','avg_amount_purchases','avg_purchases_per_week','age','withdrawal_to_purchase_ratio','activity_score']]
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, stratify=y, random_state=42)
-
-models = {
-    'RandomForest': RandomForestClassifier(random_state=42),
-    'GradientBoosting': GradientBoostingClassifier(random_state=42)
-}
-results = {}
-for name, model in models.items():
-    grid = GridSearchCV(
-        model,
-        param_grid={'n_estimators':[50,100], 'max_depth':[5,10]},
-        cv=3
-    )
-    grid.fit(X_train, y_train)
-    best = grid.best_estimator_
-    y_pred = best.predict(X_test)
-    report = classification_report(y_test, y_pred, output_dict=True)
-    results[name] = report
-    st.markdown(f"**{name} - Mejor Parámetros:** {grid.best_params_}")
-    st.text(classification_report(y_test, y_pred, target_names=list({'🔵 Premium Credit','🟢 Basic Credit','🟡 Moderate Risk','🔴 High Risk'})))
-
-# Comparativa F1-score
-f1_scores = {name: results[name]['macro avg']['f1-score'] for name in results}
-fig_f1 = go.Figure(data=[go.Bar(x=list(f1_scores.keys()), y=list(f1_scores.values()))])
-fig_f1.update_layout(title='Comparativa F1-score Macro')
-st.plotly_chart(fig_f1, use_container_width=True)
-
-# --------------------------------------
-# 10. Export y Feedback
-# --------------------------------------
-st.subheader("💾 Exportar y Feedback")
-csv_data = df_filtered.to_csv(index=False).encode('utf-8')
-st.download_button(
-    label="Exportar Datos Filtrados CSV",
-    data=csv_data,
-    file_name='clientes_filtrados.csv',
-    mime='text/csv'
-)
-feedback = st.text_area("Comentarios / Feedback:", placeholder="Escribe tu feedback aquí...")
-if st.button("Enviar Feedback"):
-    st.success("¡Gracias por tu feedback!")
-
-# --------------------------------------
-# 11. Estadísticos Descriptivos
-# --------------------------------------
-def describe_dataset(df):
-    return df.describe()
-
-if st.sidebar.checkbox("Mostrar estadísticos descriptivos"):
-    st.subheader("📑 Estadísticos descriptivos")
-    st.write(describe_dataset(df_filtered))
-
-# ======================================
-# Fin del Dashboard - Data Science Senior
-# ======================================
