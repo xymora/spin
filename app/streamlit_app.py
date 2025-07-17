@@ -43,12 +43,11 @@ else:
     st.stop()
 
 # =====================
-# Filtros laterales
+# Filtros laterales opcionales
 # =====================
 with st.sidebar:
     st.header("🔍 Filtros (opcional)")
-    
-    aplicar_filtros = st.checkbox("Aplicar filtros", value=False)
+    aplicar_filtros = st.checkbox("Aplicar filtros manualmente", value=False)
 
     if aplicar_filtros:
         edad_min, edad_max = int(df['age'].min()), int(df['age'].max())
@@ -78,7 +77,7 @@ else:
 # =====================
 # Mostrar resultados
 # =====================
-st.subheader("📋 Clientes Filtrados")
+st.subheader("📋 Clientes Visualizados")
 
 columnas_mostrar = [
     'user', 'age', 'avg_amount_withdrawals', 
