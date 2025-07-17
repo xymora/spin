@@ -43,47 +43,38 @@ else:
     st.stop()
 
 # =====================
-# Filtros laterales opcionales
+# Filtros laterales
 # =====================
 with st.sidebar:
-    st.header("🔍 Filtros (opcional)")
-    aplicar_filtros = st.checkbox("Aplicar filtros manualmente", value=False)
+    st.header("🔍 Filtros")
 
-    if aplicar_filtros:
-        edad_min, edad_max = int(df['age'].min()), int(df['age'].max())
-        retiro_min, retiro_max = float(df['avg_amount_withdrawals'].min()), float(df['avg_amount_withdrawals'].max())
-        compra_min, compra_max = float(df['avg_purchases_per_week'].min()), float(df['avg_purchases_per_week'].max())
+    edad_min, edad_max = int(df['age'].min()), int(df['age'].max())
+    retiro_min, retiro_max = float(df['avg_amount_withdrawals'].min()), float(df['avg_amount_withdrawals'].max())
+    compra_min, compra_max = float(df['avg_purchases_per_week'].min()), float(df['avg_purchases_per_week'].max())
 
-        edad = st.slider("Edad", edad_min, edad_max, (edad_min, edad_max))
-        retiros = st.slider("Promedio de Retiros", retiro_min, retiro_max, (retiro_min, retiro_max))
-        compras = st.slider("Compras por semana", compra_min, compra_max, (compra_min, compra_max))
+    edad = st.slider("Edad", edad_min, edad_max, (edad_min, edad_max))
+    retiros = st.slider("Promedio de Retiros", retiro_min, retiro_max, (retiro_min, retiro_max))
+    compras = st.slider("Compras por semana", compra_min, compra_max, (compra_min, compra_max))
 
-        tipos_credito = df['Clasificación Automática'].unique().tolist()
-        tipos_seleccionados = st.multiselect("Tipo de crédito", sorted(tipos_credito), default=tipos_credito)
+    tipos_credito = df['Clasificación Automática'].unique().tolist()
+    tipos_seleccionados = st.multiselect("Tipo de crédito", sorted(tipos_credito), default=tipos_credito)
 
 # =====================
-# Aplicar filtros si se seleccionan
+# Aplicar filtros
 # =====================
-if aplicar_filtros:
-    df_filtrado = df[
-        (df['age'].between(*edad)) &
-        (df['avg_amount_withdrawals'].between(*retiros)) &
-        (df['avg_purchases_per_week'].between(*compras)) &
-        (df['Clasificación Automática'].isin(tipos_seleccionados))
-    ]
-else:
-    df_filtrado = df.copy()
+df_filtrado = df[
+    (df['age'].between(*edad)) &
+    (df['avg_amount_withdrawals'].between(*retiros)) &
+    (df['avg_purchases_per_week'].between(*compras)) &
+    (df['Clasificación Automática'].isin(tipos_seleccionados))
+]
 
 # =====================
 # Mostrar resultados
 # =====================
 st.subheader("📋 Clientes Visualizados")
 
-columnas_mostrar = [
-    'user', 'age', 'avg_amount_withdrawals', 
-    'avg_purchases_per_week', 'Clasificación Automática'
-]
-columnas_mostrar = [col for col in columnas_mostrar if col in df_filtrado.columns]
+columnas_mostrar = df_filtrado.columns.tolist()
 
 st.dataframe(df_filtrado[columnas_mostrar], use_container_width=True)
 st.markdown(f"🔎 Total mostrados: **{len(df_filtrado):,}** / 100,000")
